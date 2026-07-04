@@ -9,6 +9,8 @@ MODERN = -std=gnu89 -Wno-implicit-int -Wno-implicit-function-declaration \
 CC = cc
 CFLAGS = -O $(MODERN) -Iheaders -w
 LIBS = -lm
+# The unicode/emoji gfx mode (-gfx unicode) needs a wide-capable curses.
+# macOS system -lcurses already is; on Linux build with: make CURSES=-lncursesw
 CURSES = -lcurses
 
 ENGINE_OBJS = \
@@ -17,7 +19,7 @@ ENGINE_OBJS = \
 	g_ani.o w_con.o w_tool.o w_sprite.o w_budget.o w_eval.o w_keys.o \
 	w_resrc.o w_update.o w_stubs.o w_util.o w_sound.o rand.o random.o
 
-NC_OBJS = nc_main.o nc_render.o nc_input.o nc_status.o nc_minimap.o \
+NC_OBJS = nc_main.o nc_render.o nc_gfx.o nc_input.o nc_status.o nc_minimap.o \
 	nc_menu.o nc_dialogs.o nc_stubs.o
 
 all: ttycity

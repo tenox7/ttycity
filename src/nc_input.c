@@ -21,26 +21,27 @@ typedef struct {
   char key;
   char *code;		/* short code (dense grid)  */
   char *lcode;		/* long code (expanded grid, always 2 chars) */
+  char *emoji;		/* unicode gfx mode button face (2 columns) */
   short fg, bg;		/* button colors = how the tile looks on the map */
 } ToolBtn;
 
 static ToolBtn toolbar[] = {
-  /* row 0: zones            */ { residentialState,'R', "R",  "RE", COLOR_BLACK,  COLOR_CYAN    },
-                                { commercialState, 'C', "C",  "CO", COLOR_WHITE,  COLOR_BLUE    },
-                                { industrialState, 'I', "I",  "IN", COLOR_YELLOW, COLOR_MAGENTA },
-  /* row 1: services + query */ { fireState,       'F', "F",  "FI", COLOR_WHITE,  COLOR_RED     },
-                                { queryState,      'Q', "?",  "QY", COLOR_BLACK,  COLOR_WHITE   },
-                                { policeState,     'P', "P",  "PD", COLOR_WHITE,  COLOR_RED     },
-  /* row 2: utilities        */ { wireState,       'W', "W",  "WI", COLOR_RED,    COLOR_WHITE   },
-                                { dozeState,       'B', "B",  "BU", COLOR_BLACK,  COLOR_YELLOW  },
-                                { parkState,       'K', "\"", "PK", COLOR_BLACK,  COLOR_GREEN   },
-  /* row 3: transport        */ { rrState,         'L', "RR", "RR", COLOR_BLACK,  COLOR_WHITE   },
-                                { roadState,       'O', "RO", "RO", COLOR_WHITE,  COLOR_BLACK   },
-  /* row 4: big buildings    */ { stadiumState,    'S', "ST", "ST", COLOR_BLACK,  COLOR_WHITE   },
-                                { seaportState,    'E', "PO", "PO", COLOR_WHITE,  COLOR_BLUE    },
-  /* row 5: power plants      */ { powerState,     'G', "CP", "CP", COLOR_WHITE,  COLOR_RED     },
-                                { nuclearState,    'N', "NP", "NP", COLOR_BLACK,  COLOR_GREEN   },
-  /* row 6: airport           */ { airportState,   'A', "AP", "AP", COLOR_BLACK,  COLOR_WHITE   }
+  /* row 0: zones            */ { residentialState,'R', "R",  "RE", "🏠", COLOR_BLACK,  COLOR_CYAN    },
+                                { commercialState, 'C', "C",  "CO", "🏬", COLOR_WHITE,  COLOR_BLUE    },
+                                { industrialState, 'I', "I",  "IN", "🏭", COLOR_YELLOW, COLOR_MAGENTA },
+  /* row 1: services + query */ { fireState,       'F', "F",  "FI", "🚒", COLOR_WHITE,  COLOR_RED     },
+                                { queryState,      'Q', "?",  "QY", "🔍", COLOR_BLACK,  COLOR_WHITE   },
+                                { policeState,     'P', "P",  "PD", "🚨", COLOR_WHITE,  COLOR_RED     },
+  /* row 2: utilities        */ { wireState,       'W', "W",  "WI", "⚡",     COLOR_RED,    COLOR_WHITE   },
+                                { dozeState,       'B', "B",  "BU", "🚜", COLOR_BLACK,  COLOR_YELLOW  },
+                                { parkState,       'K', "\"", "PK", "🌳", COLOR_BLACK,  COLOR_GREEN   },
+  /* row 3: transport        */ { rrState,         'L', "RR", "RR", "🚂", COLOR_BLACK,  COLOR_WHITE   },
+                                { roadState,       'O', "RO", "RO", "🚗", COLOR_WHITE,  COLOR_BLACK   },
+  /* row 4: big buildings    */ { stadiumState,    'S', "ST", "ST", "⚽",     COLOR_BLACK,  COLOR_WHITE   },
+                                { seaportState,    'E', "PO", "PO", "⚓",     COLOR_WHITE,  COLOR_BLUE    },
+  /* row 5: power plants      */ { powerState,     'G', "CP", "CP", "🔌", COLOR_WHITE,  COLOR_RED     },
+                                { nuclearState,    'N', "NP", "NP", "☢ ",    COLOR_BLACK,  COLOR_GREEN   },
+  /* row 6: airport           */ { airportState,   'A', "AP", "AP", "🛫", COLOR_BLACK,  COLOR_WHITE   }
 };
 #define NTOOLS ((int)(sizeof(toolbar) / sizeof(toolbar[0])))
 
@@ -57,6 +58,7 @@ int    nc_toolbar_bg(int i)       { return toolbar[i].bg; }
 char   nc_toolbar_key(int i)      { return toolbar[i].key; }
 char  *nc_toolbar_code(int i)     { return toolbar[i].code; }
 char  *nc_toolbar_lcode(int i)    { return toolbar[i].lcode; }
+char  *nc_toolbar_emoji(int i)    { return toolbar[i].emoji; }
 int    nc_toolbar_gridrows(void)  { return NGRIDROWS; }
 int    nc_toolbar_rowlen(int r)   { return grid_cols[r]; }
 

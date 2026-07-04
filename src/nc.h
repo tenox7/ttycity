@@ -21,6 +21,24 @@ extern int CursorX, CursorY;		/* cursor position in tile coords */
 extern int ViewPanX, ViewPanY;		/* top-left visible tile */
 extern int Quitting;
 
+/* --- nc_gfx.c: pluggable tile-graphics modes ------------------------------
+ * Each mode renders one map tile as `tilew` screen columns.  The editor loop
+ * (nc_render.c) only does layout/panning and dispatches through Gfx; adding a
+ * mode (braille, aalib shading, 7-bit ASCII, B&W...) = one new GfxOps entry.
+ */
+struct GfxOps {
+  char *name;					/* "default", "unicode", ... */
+  int tilew;					/* screen columns per map tile */
+  int emojiui;					/* emoji faces on the tool palette */
+  int (*avail)(void);				/* runtime check (NULL = always) */
+  void (*tile)(int sy, int sx, int mapx, int mapy);
+  void (*sprite)(int sy, int sx, int type);
+  void (*cursor)(int sy, int sx, int mapx, int mapy);
+};
+extern struct GfxOps *Gfx;			/* current mode */
+int   nc_gfx_set(char *name);			/* -gfx <name>; 0 = unknown/unavail */
+char *nc_gfx_cycle(void);			/* 'u' key / Options menu */
+
 /* --- nc_render.c --------------------------------------------------------- */
 extern int EdTop, EdLeft, EdW, EdH;		/* editor region (screen coords) */
 extern int MinimapW;				/* right minimap panel width (0=off) */
@@ -29,6 +47,9 @@ extern int ThemeLand;				/* land background color */
 char *nc_cycle_theme(void);			/* Options menu: cycle land color */
 void  nc_set_theme(char *name);			/* -theme tan|grass|dark */
 void nc_colors_init(void);
+int  nc_transit_class(int t);			/* 0 none, 1 road, 2 rail, 3 wire */
+int  nc_transit_mask(int x, int y, int cls);	/* up/dn/lf/rt neighbor bits */
+chtype nc_sprite_glyph(int type);		/* default-mode sprite chtype */
 chtype nc_cell(int mapx, int mapy);		/* decode Map[x][y] -> glyph */
 void nc_draw_editor(SimView *view);		/* render viewport to stdscr */
 void nc_draw_toolbar(SimView *view);		/* vertical left tool palette */
@@ -76,6 +97,7 @@ int  nc_toolbar_bg(int i);
 char nc_toolbar_key(int i);
 char *nc_toolbar_code(int i);
 char *nc_toolbar_lcode(int i);
+char *nc_toolbar_emoji(int i);
 int  nc_toolbar_gridrows(void);
 int  nc_toolbar_rowlen(int r);
 void nc_tool_next(SimView *view);

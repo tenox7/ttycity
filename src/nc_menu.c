@@ -30,7 +30,7 @@ enum {
   A_T_ANIM, A_T_MSG, A_T_NOTICE,
   A_DIS_MONSTER, A_DIS_FIRE, A_DIS_FLOOD, A_DIS_TORNADO, A_DIS_QUAKE, A_DIS_MELT,
   A_SPD_PAUSE, A_SPD_SLOW, A_SPD_MED, A_SPD_FAST,
-  A_BUDGET, A_EVAL, A_GRAPH, A_MAP, A_THEME
+  A_BUDGET, A_EVAL, A_GRAPH, A_MAP, A_THEME, A_GFX
 };
 
 typedef struct { char *label; int id; } Item;
@@ -54,7 +54,8 @@ static Item opt_items[] = {
   { "Animation",     A_T_ANIM },
   { "Messages",      A_T_MSG },
   { "Notices",       A_T_NOTICE },
-  { "Land Color >",  A_THEME }
+  { "Land Color >",  A_THEME },
+  { "Graphics >",    A_GFX }
 };
 static Item dis_items[] = {
   { "Monster",    A_DIS_MONSTER },
@@ -79,7 +80,7 @@ static Item view_items[] = {
 
 static Menu menus[] = {
   { "File",      file_items, 7 },
-  { "Options",   opt_items,  9 },
+  { "Options",   opt_items,  10 },
   { "Disasters", dis_items,  6 },
   { "Speed",     spd_items,  4 },
   { "Views",     view_items, 4 }
@@ -159,6 +160,10 @@ do_action(int id)
   case A_MAP:    nc_minimap_cycle(); break;
   case A_THEME:
     { char msg[64]; sprintf(msg, "Land color: %s", nc_cycle_theme());
+      nc_set_status(msg); }
+    break;
+  case A_GFX:
+    { char msg[64]; sprintf(msg, "Graphics: %s ('u' cycles)", nc_gfx_cycle());
       nc_set_status(msg); }
     break;
   }

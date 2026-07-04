@@ -13,6 +13,7 @@ therefore self-contained and needs no external files at runtime:
 ./ttycity                       # start a new random city
 ./ttycity ../cities/bruce.cty   # load a city file from disk
 ./ttycity -theme grass          # tan (default) | grass | dark land color
+./ttycity -gfx unicode         # emoji / unicode graphics mode (see below)
 ```
 
 The built-in scenarios and example cities are on the in-game *New Game* and
@@ -33,6 +34,7 @@ optional overview map on the right, and a status line at the bottom.
 | Shift + letter  | pick a tool (`R`es `C`om `I`nd, r`O`ad rai`L` `W`ire, `B`ulldoze `Q`uery, `F`ire police-`D`… see palette) |
 | Enter           | build the current tool at the cursor |
 | `m`             | cycle the overview map / data overlays |
+| `u`             | cycle the graphics mode (default / unicode) |
 | space           | pause · `0`–`3` set speed |
 | Esc / F10       | open the menu bar |
 | `g`             | new random city · `q` quit |
@@ -40,6 +42,27 @@ optional overview map on the right, and a status line at the bottom.
 Menus cover New Game / scenarios, Load & Save, the Budget, City Evaluation,
 History graphs, disasters, and options (auto-budget, sound, land color, …).
 The interface is resizable and works down to 80×24.
+
+## Graphics modes
+
+`ttycity` has pluggable tile-graphics modes (`-gfx <name>`, the `u` key, or
+*Options → Graphics*):
+
+- **default** — one character per tile, plain ASCII + ACS line drawing +
+  8 colors.  Runs on any curses ever shipped (SysV, AIX, IRIX, HP-UX, …).
+- **unicode** — two columns per tile, drawn with UTF-8: emoji buildings and
+  vehicles (🏡 🏢 🏭 ⛪ 🏥 ⚓ 🛫 📡 🚨 🚒 ⚽ 🔥 🚗 🚕 🚂 🚁 🚢 🦖 🌀 ⚡ 🌲 ⛲ …),
+  heavy/double/light box-drawing for roads, rails and power lines, quadrant
+  block elements for zone density, braille-pattern terrain texture, and the
+  odd crab on the beach.  The tool palette gets emoji button faces too
+  (🏠 🏬 🏭 🚒 🔍 🚨 ⚡ 🚜 🌳 🚂 🚗 ⚽ ⚓ 🔌 ☢ 🛫).
+  Needs a UTF-8 locale and a wide-char-capable
+  curses: the stock macOS `-lcurses` works out of the box; on Linux build
+  with `make CURSES=-lncursesw`.
+
+Planned (see `TODO.md`): braille 2×4 micro-tiles, aalib-style shading,
+pure 7-bit ASCII, and B&W modes — each is one new `GfxOps` entry in
+`nc_gfx.c`.
 
 ## Legal
 

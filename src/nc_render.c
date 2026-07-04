@@ -1,9 +1,11 @@
 /* nc_render.c  --  editor viewport rendering for the ncurses port.
  *
- * Replaces the X11 tile blitter (g_bigmap.c / w_editor.c).  One map cell is
- * drawn as one character: the per-cell tile decode is the same as the original
- * MemDrawBeegMapRect (g_bigmap.c:60-68), after which the tile index is mapped
- * to a character + curses color instead of a 16x16 pixmap.
+ * Replaces the X11 tile blitter (g_bigmap.c / w_editor.c).  The per-cell tile
+ * decode is the same as the original MemDrawBeegMapRect (g_bigmap.c:60-68),
+ * after which the tile index is mapped to a character + curses color instead
+ * of a 16x16 pixmap.  nc_cell() here is the DEFAULT graphics mode (one plain
+ * chtype per tile); the editor loop dispatches through Gfx (nc_gfx.c) so
+ * alternate modes (unicode/emoji, braille, ...) can draw tiles differently.
  */
 
 #include "sim.h"
@@ -48,8 +50,8 @@ nc_set_theme(char *name)
 }
 
 /* Transit class of a tile for line-drawing: 0 none, 1 road, 2 rail, 3 power. */
-static int
-transit_class(int t)
+int
+nc_transit_class(int t)
 {
   t &= LOMASK;
   if (t >= ROADBASE && t <= LASTROAD) return 1;
@@ -58,18 +60,26 @@ transit_class(int t)
   return 0;
 }
 
+/* Four same-class neighbor bits: (up<<3)|(dn<<2)|(lf<<1)|rt.  Shared by the
+ * ACS auto-tiler below and the per-mode line tables in nc_gfx.c. */
+int
+nc_transit_mask(int x, int y, int cls)
+{
+  int up, dn, lf, rt;
+
+  up = (y > 0)           && (nc_transit_class(Map[x][y - 1]) == cls);
+  dn = (y < WORLD_Y - 1) && (nc_transit_class(Map[x][y + 1]) == cls);
+  lf = (x > 0)           && (nc_transit_class(Map[x - 1][y]) == cls);
+  rt = (x < WORLD_X - 1) && (nc_transit_class(Map[x + 1][y]) == cls);
+
+  return (up << 3) | (dn << 2) | (lf << 1) | rt;
+}
+
 /* Line-drawing glyph chosen from the four same-class neighbors. */
 static chtype
 line_glyph(int x, int y, int cls)
 {
-  int up, dn, lf, rt, m;
-
-  up = (y > 0)           && (transit_class(Map[x][y - 1]) == cls);
-  dn = (y < WORLD_Y - 1) && (transit_class(Map[x][y + 1]) == cls);
-  lf = (x > 0)           && (transit_class(Map[x - 1][y]) == cls);
-  rt = (x < WORLD_X - 1) && (transit_class(Map[x + 1][y]) == cls);
-
-  m = (up << 3) | (dn << 2) | (lf << 1) | rt;
+  int m = nc_transit_mask(x, y, cls);
 
   switch (m) {
   case 0:  return ACS_PLUS;		/* isolated segment */
@@ -154,7 +164,7 @@ nc_cell(int mapx, int mapy)
    * (fg,bg): road = white-on-black, rail = black-on-white (inverse ballast
    * strip), power = red-on-land.  Heavy-traffic road tiles (index >= HTRFBASE)
    * show alternating `,` car glyphs. */
-  cls = transit_class(t);
+  cls = nc_transit_class(t);
   if (cls == 1) {
     if (t >= HTRFBASE && t <= LASTROAD) {		/* heavy traffic */
       ch = ((mapx + mapy) & 1) ? ',' : '`';
@@ -336,6 +346,15 @@ nc_draw_toolbar(SimView *view)
       int attr = NC_CP(tool_panel_color(idx), COLOR_WHITE);	/* colored letters */
 
       if (view->tool_state == st) attr |= A_REVERSE | A_BOLD;	/* selected tool */
+      if (Gfx->emojiui) {		/* emoji button faces (unicode mode) */
+	if (expanded) sprintf(cell, "[%s]", nc_toolbar_emoji(idx));
+	else          sprintf(cell, "%s",   nc_toolbar_emoji(idx));
+	attrset(attr);
+	mvaddstr(top + 1 + r, lpad + c * cellw, cell);
+	if (!expanded)			/* no brackets to flip: mark with '<' */
+	  addch(view->tool_state == st ? '<' : ' ');
+	continue;
+      }
       if (expanded) sprintf(cell, "[%s]", nc_toolbar_lcode(idx));
       else          sprintf(cell, "%-2s", nc_toolbar_code(idx));
       attrset(attr);
@@ -394,7 +413,8 @@ nc_draw_toolbar(SimView *view)
 void
 nc_draw_editor(SimView *view)
 {
-  int rows, cols, sy, sx, mx, my, jx = 0, jy = 0;
+  int rows, cols, sy, tx, sx, mx, my, jx = 0, jy = 0;
+  int tw, vt, k;
 
   getmaxyx(stdscr, rows, cols);
   if (ShakeNow > 0) { jx = Rand(3) - 1; jy = Rand(3) - 1; }  /* earthquake shake */
@@ -405,37 +425,48 @@ nc_draw_editor(SimView *view)
   if (EdH < 1) EdH = 1;
   if (EdW < 1) EdW = cols;
 
+  tw = Gfx->tilew;			/* screen columns per map tile */
+  vt = EdW / tw;			/* visible tiles per row */
+  if (vt < 1) vt = 1;
+
   /* keep cursor visible: scroll the pan window to contain it */
   if (CursorX < ViewPanX) ViewPanX = CursorX;
-  if (CursorX >= ViewPanX + EdW) ViewPanX = CursorX - EdW + 1;
+  if (CursorX >= ViewPanX + vt) ViewPanX = CursorX - vt + 1;
   if (CursorY < ViewPanY) ViewPanY = CursorY;
   if (CursorY >= ViewPanY + EdH) ViewPanY = CursorY - EdH + 1;
 
-  if (ViewPanX > WORLD_X - EdW) ViewPanX = WORLD_X - EdW;
+  if (ViewPanX > WORLD_X - vt) ViewPanX = WORLD_X - vt;
   if (ViewPanY > WORLD_Y - EdH) ViewPanY = WORLD_Y - EdH;
   if (ViewPanX < 0) ViewPanX = 0;
   if (ViewPanY < 0) ViewPanY = 0;
 
   for (sy = 0; sy < EdH; sy++) {
     my = ViewPanY + sy + jy;
-    for (sx = 0; sx < EdW; sx++) {
-      mx = ViewPanX + sx + jx;
+    for (tx = 0; tx < vt; tx++) {
+      mx = ViewPanX + tx + jx;
+      sx = EdLeft + tx * tw;
       if (mx >= 0 && mx < WORLD_X && my >= 0 && my < WORLD_Y) {
-	chtype c = nc_cell(mx, my);
-	if (mx == CursorX && my == CursorY) c |= A_REVERSE;
-	mvaddch(EdTop + sy, EdLeft + sx, c);
+	Gfx->tile(EdTop + sy, sx, mx, my);
       } else {
-	mvaddch(EdTop + sy, EdLeft + sx, ' ');
+	for (k = 0; k < tw; k++) mvaddch(EdTop + sy, sx + k, ' ');
       }
     }
+    for (sx = EdLeft + vt * tw; sx < EdLeft + EdW; sx++)
+      mvaddch(EdTop + sy, sx, ' ');	/* ragged right edge (EdW % tw) */
   }
+
+  /* cursor marker (drawn by the mode: reverse cell / brackets / ...) */
+  tx = CursorX - ViewPanX - jx;
+  sy = CursorY - ViewPanY - jy;
+  if (tx >= 0 && tx < vt && sy >= 0 && sy < EdH)
+    Gfx->cursor(EdTop + sy, EdLeft + tx * tw, CursorX, CursorY);
 
   nc_draw_sprites();			/* moving objects over the tile layer */
 }
 
 /* Sprite glyph by type (TRA COP AIR SHI GOD TOR EXP BUS = 1..8). */
-static chtype
-sprite_glyph(int type)
+chtype
+nc_sprite_glyph(int type)
 {
   switch (type) {
   case TRA: return 'e' | NC_CP(COLOR_CYAN, COLOR_BLACK) | A_BOLD;	/* train  */
@@ -456,19 +487,22 @@ nc_draw_sprites(void)
 {
   extern Sim *sim;
   SimSprite *s;
-  int tx, ty, sx, sy;
+  int tx, ty, sx, sy, tw, vt;
 
   if (!sim) return;
+  tw = Gfx->tilew;
+  vt = EdW / tw;
+  if (vt < 1) vt = 1;
   for (s = sim->sprite; s != NULL; s = s->next) {
     if (s->frame == 0) continue;		/* dead / inactive */
     tx = (s->x + s->x_hot) >> 4;		/* pixel -> tile coords */
     ty = (s->y + s->y_hot) >> 4;
-    if (tx < ViewPanX || tx >= ViewPanX + EdW ||
+    if (tx < ViewPanX || tx >= ViewPanX + vt ||
 	ty < ViewPanY || ty >= ViewPanY + EdH)
       continue;
-    sx = EdLeft + (tx - ViewPanX);
+    sx = EdLeft + (tx - ViewPanX) * tw;
     sy = EdTop + (ty - ViewPanY);
-    mvaddch(sy, sx, sprite_glyph(s->type));
+    Gfx->sprite(sy, sx, s->type);
   }
 }
 

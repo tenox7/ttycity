@@ -8,6 +8,7 @@
 
 #include "sim.h"
 #include <curses.h>
+#include <locale.h>
 #include "nc.h"
 
 /* ---- globals that used to live in the (discarded) sim.c driver ----------- */
@@ -298,6 +299,15 @@ handle_key(int ch)
     clear();
     break;
 
+  case 'u':				/* cycle graphics mode (default/unicode/...) */
+    {
+      char msg[48];
+      sprintf(msg, "Graphics: %s", nc_gfx_cycle());
+      nc_set_status(msg);
+      clear();				/* tile width may have changed */
+    }
+    break;
+
   case 'g': case 'G':
     start_new_city(Rand16());
     break;
@@ -321,6 +331,7 @@ main(int argc, char *argv[])
   struct timeval last_tick;
   char *loadfile = NULL;
   char *shot_path = NULL;
+  char *gfxname = NULL;
   int shot_frames = 60;
   int seed = 0, i, have_seed = 0;
 
@@ -331,6 +342,8 @@ main(int argc, char *argv[])
       shot_frames = atoi(argv[++i]);
     } else if (!strcmp(argv[i], "-theme") && i + 1 < argc) {
       nc_set_theme(argv[++i]);			/* tan | grass | dark */
+    } else if (!strcmp(argv[i], "-gfx") && i + 1 < argc) {
+      gfxname = argv[++i];			/* default | unicode ('u' cycles) */
     } else if (argv[i][0] == '-') {
       /* other options handled in later phases; ignore for now */
     } else if (!loadfile && (strstr(argv[i], ".cty") || strstr(argv[i], ".scn"))) {
@@ -339,6 +352,15 @@ main(int argc, char *argv[])
       seed = atoi(argv[i]);
       have_seed = 1;
     }
+  }
+
+  setlocale(LC_ALL, "");	/* multibyte output for the unicode gfx mode */
+  if (gfxname && !nc_gfx_set(gfxname)) {
+    fprintf(stderr,
+	    "ttycity: unknown or unavailable -gfx mode '%s'\n"
+	    "         (modes: default, unicode; unicode needs a UTF-8 locale)\n",
+	    gfxname);
+    return 1;
   }
 
   /* ncurses init */

@@ -1166,6 +1166,12 @@ Rand16Signed(void)
 RandomlySeedRand()
 {
   struct timeval time;
+  char *s = getenv("TTYCITY_SEED");	/* fixed seed for regression testing */
+
+  if (s && *s) {
+    SeedRand(atoi(s));
+    return;
+  }
 
   gettimeofday(&time, NULL);
 
