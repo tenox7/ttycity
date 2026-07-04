@@ -209,3 +209,130 @@ nc_draw_query(void)
   mvaddnstr(top + h - 1, left + 2, " any key to close ", w - 4);
   attrset(A_NORMAL);
 }
+
+/* ---- mouse --------------------------------------------------------------- */
+
+#ifdef NCURSES_MOUSE_VERSION
+/* right-button drag state: anchor of the grab, and whether it moved */
+static int RDragX = -1, RDragY = 0, RDragMoved = 0;
+
+/* Pan the view by a drag delta (grab-the-map: content follows the mouse),
+ * then keep the cursor inside the view so the editor's pan-follow logic
+ * does not snap the view back to it. */
+static void
+mouse_pan(int dx, int dy)
+{
+  int vt = EdW / Gfx->tilew;
+
+  if (vt < 1) vt = 1;
+  ViewPanX -= dx;
+  ViewPanY -= dy;
+  if (ViewPanX > WORLD_X - vt) ViewPanX = WORLD_X - vt;
+  if (ViewPanY > WORLD_Y - EdH) ViewPanY = WORLD_Y - EdH;
+  if (ViewPanX < 0) ViewPanX = 0;
+  if (ViewPanY < 0) ViewPanY = 0;
+  if (CursorX < ViewPanX) CursorX = ViewPanX;
+  if (CursorX > ViewPanX + vt - 1) CursorX = ViewPanX + vt - 1;
+  if (CursorY < ViewPanY) CursorY = ViewPanY;
+  if (CursorY > ViewPanY + EdH - 1) CursorY = ViewPanY + EdH - 1;
+  if (CursorX > WORLD_X - 1) CursorX = WORLD_X - 1;
+  if (CursorY > WORLD_Y - 1) CursorY = WORLD_Y - 1;
+}
+
+/*
+ * KEY_MOUSE dispatcher (all graphics modes; screen->tile via Gfx->tilew).
+ * Left click: menu bar / dropdown, tool palette, minimap (jump), or editor
+ * (move cursor + apply the current tool, like the original game; select the
+ * Query tool to inspect zones).  Right button: pan -- hold and drag to
+ * scroll the map.  Wheel: move the cursor up/down.  Popups swallow the
+ * dismissing click.
+ */
+void
+nc_mouse(SimView *view)
+{
+  MEVENT e;
+  int mx, my, t;
+
+  if (getmouse(&e) == ERR) return;
+
+  /* motion while the right button is held: drag-pan (whole tiles; the
+   * anchor advances by what was consumed so remainders carry over) */
+  if (e.bstate & REPORT_MOUSE_POSITION) {
+    if (RDragX >= 0) {
+      int dx = (e.x - RDragX) / Gfx->tilew;
+      int dy = e.y - RDragY;
+      if (dx || dy) {
+	mouse_pan(dx, dy);
+	RDragX += dx * Gfx->tilew;
+	RDragY += dy;
+	RDragMoved = 1;
+      }
+    }
+    return;
+  }
+  if (e.bstate & BUTTON3_PRESSED) {		/* start a potential drag */
+    RDragX = e.x;
+    RDragY = e.y;
+    RDragMoved = 0;
+    return;
+  }
+  if (e.bstate & BUTTON3_RELEASED) {		/* end of pan */
+    t = RDragMoved;
+    RDragX = -1;
+    if (!t) {					/* a bare tap: dismiss popups */
+      if (NoticeActive) nc_notice_dismiss();
+      else if (QueryActive) nc_query_dismiss();
+    }
+    return;
+  }
+
+  if (e.bstate & BUTTON4_PRESSED) {		/* wheel up */
+    CursorY -= 3;
+    if (CursorY < 0) CursorY = 0;
+    return;
+  }
+#if NCURSES_MOUSE_VERSION > 1
+  if (e.bstate & BUTTON5_PRESSED) {		/* wheel down */
+    CursorY += 3;
+    if (CursorY > WORLD_Y - 1) CursorY = WORLD_Y - 1;
+    return;
+  }
+#endif
+
+  if (!(e.bstate & (BUTTON1_PRESSED | BUTTON1_CLICKED | BUTTON1_DOUBLE_CLICKED |
+		    BUTTON3_CLICKED)))
+    return;
+
+  if (NoticeActive) { nc_notice_dismiss(); return; }
+  if (QueryActive)  { nc_query_dismiss(); return; }
+
+  if (e.bstate & BUTTON3_CLICKED)		/* merged right tap: nothing */
+    return;
+
+  if (nc_menu_mouse(e.y, e.x)) return;
+
+  t = nc_toolbar_hit(e.y, e.x);
+  if (t >= 0) {
+    nc_tool_select(view, t);
+    return;
+  }
+
+  /* minimap first: on narrow terminals it overlays the editor */
+  if (nc_minimap_hit(e.y, e.x, &mx, &my)) {
+    CursorX = mx;
+    CursorY = my;
+    return;
+  }
+
+  if (e.x >= EdLeft && e.x < EdLeft + EdW &&
+      e.y >= EdTop  && e.y < EdTop + EdH) {
+    mx = ViewPanX + (e.x - EdLeft) / Gfx->tilew;
+    my = ViewPanY + (e.y - EdTop);
+    if (mx < 0 || mx >= WORLD_X || my < 0 || my >= WORLD_Y) return;
+    CursorX = mx;
+    CursorY = my;
+    nc_clear_status();
+    nc_apply_tool(view);
+  }
+}
+#endif /* NCURSES_MOUSE_VERSION */

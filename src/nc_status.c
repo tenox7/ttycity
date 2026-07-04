@@ -53,6 +53,21 @@ nc_draw_status(SimView *view)
       " SHIFT+letter=tool  arrows=move  enter=build  m=map  space=pause  0-3=speed  q=quit",
       cols - 1);
   }
+
+  /* horizontal scroll marker: a white thumb on this black bar, spanning the
+   * editor's x-range; chgat recolors so any text stays readable under it */
+  {
+    int vt = EdW / Gfx->tilew, sl, sx;
+
+    if (vt < 1) vt = 1;
+    if (vt < WORLD_X && EdW > 1) {
+      sl = EdW * vt / WORLD_X;
+      if (sl < 1) sl = 1;
+      sx = EdLeft + (EdW - sl) * ViewPanX / (WORLD_X - vt);
+      mvchgat(rows - 1, sx, sl, A_NORMAL, NC_PAIR(COLOR_BLACK, COLOR_WHITE),
+	      NULL);
+    }
+  }
 }
 
 /* ---- auto-goto (engine callback from DoAutoGoto) ------------------------- */

@@ -138,6 +138,24 @@ overlay_color(int state, int tx, int ty, int *bold)
  * (w-2) x (h-2) cells (leaving a border).  Each cell samples the tile at its
  * center; the active overlay recolors it.
  */
+/* last-drawn panel rectangle, for mouse hit-testing (PW=0 when hidden) */
+static int PTop, PLeft, PW, PH;
+
+/* Map a click inside the panel's grid to tile coords; returns 1 on hit. */
+int
+nc_minimap_hit(int y, int x, int *tx, int *ty)
+{
+  int iw = PW - 2, ih = PH - 2;
+
+  if (MinimapMode < 0 || iw < 1 || ih < 1) return 0;
+  x -= PLeft + 1;
+  y -= PTop + 1;
+  if (x < 0 || x >= iw || y < 0 || y >= ih) return 0;
+  *tx = x * WORLD_X / iw;
+  *ty = y * WORLD_Y / ih;
+  return 1;
+}
+
 static void
 draw_grid(int top, int left, int w, int h)
 {
@@ -146,6 +164,7 @@ draw_grid(int top, int left, int w, int h)
   int state = (MinimapMode >= 0) ? modes[MinimapMode].state : ALMAP;
   char title[64];
 
+  PTop = top; PLeft = left; PW = w; PH = h;
   if (iw < 4 || ih < 3) return;
 
   /* border + title bar */

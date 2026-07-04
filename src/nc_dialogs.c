@@ -16,6 +16,44 @@ extern QUAD roadValue, policeValue, fireValue;
 extern QUAD roadMaxValue, policeMaxValue, fireMaxValue;
 extern int makeDollarDecimalStr(char *numStr, char *dollarStr);
 
+#if defined(KEY_MOUSE) && defined(NCURSES_MOUSE_VERSION)
+/*
+ * Mouse for the list modals (New Game / Load Built-in / file browser).
+ * The wheel moves the selection; clicking a row selects it and clicking
+ * the selected row again activates it; a click outside the box cancels.
+ * List rows sit at screen row top+2+i showing items off..off+listh-1.
+ * Returns 0 ignore, 1 selection moved, 2 activate selection, 3 cancel.
+ */
+static int
+modal_list_mouse(int top, int left, int w, int h, int listh,
+		 int off, int n, int *sel)
+{
+  MEVENT e;
+  int row;
+
+  if (getmouse(&e) == ERR) return 0;
+  if (e.bstate & BUTTON4_PRESSED) { row = *sel - 1; goto wheel; }
+#if NCURSES_MOUSE_VERSION > 1
+  if (e.bstate & BUTTON5_PRESSED) { row = *sel + 1; goto wheel; }
+#endif
+  if (!(e.bstate & (BUTTON1_PRESSED | BUTTON1_CLICKED | BUTTON1_DOUBLE_CLICKED)))
+    return 0;
+  if (e.x < left || e.x >= left + w || e.y < top || e.y >= top + h)
+    return 3;					/* outside the box */
+  row = e.y - (top + 2);
+  if (row < 0 || row >= listh || off + row >= n) return 0;
+  if (off + row == *sel) return 2;		/* second click: activate */
+  *sel = off + row;
+  return 1;
+
+wheel:
+  if (row < 0) row = 0;
+  if (row > n - 1) row = n - 1;
+  *sel = row;
+  return 1;
+}
+#endif
+
 static void
 dollar(long v, char *out)
 {
@@ -416,6 +454,7 @@ nc_load_modal(void)
     attrset(A_NORMAL);
     refresh();
 
+    { int act = 0;
     switch (getch()) {
     case ERR: break;
     case '`': nc_screenshot("/tmp/ttycity_shot.txt"); break;
@@ -424,6 +463,19 @@ nc_load_modal(void)
     case KEY_NPAGE:          sel += listh; break;
     case KEY_PPAGE:          sel -= listh; break;
     case '\n': case '\r': case KEY_ENTER:
+      act = 1; break;
+#if defined(KEY_MOUSE) && defined(NCURSES_MOUSE_VERSION)
+    case KEY_MOUSE:
+      switch (modal_list_mouse(top, left, w, h, listh, off, n, &sel)) {
+      case 2: act = 1; break;
+      case 3: done = 1; break;
+      }
+      break;
+#endif
+    case 27: case 'q':
+      done = 1; break;
+    }
+    if (act && n > 0) {
       if (ents[sel].isdir) {
 	sprintf(tmp, "%s/%s", cwd, ents[sel].name);
 	if (realpath(tmp, cwd)) { n = fb_read(cwd, ents, FB_MAX); sel = 0; off = 0; }
@@ -437,9 +489,7 @@ nc_load_modal(void)
 	}
 	done = 1;
       }
-      break;
-    case 27: case 'q':
-      done = 1; break;
+    }
     }
   }
   clear();
@@ -518,12 +568,26 @@ nc_newgame_modal(void)
     attrset(A_NORMAL);
     refresh();
 
+    { int act = 0;
     switch (getch()) {
     case ERR: break;
     case '`': nc_screenshot("/tmp/ttycity_shot.txt"); break;
     case KEY_UP: case 'k':   sel = (sel + NG_N - 1) % NG_N; break;
     case KEY_DOWN: case 'j': sel = (sel + 1) % NG_N; break;
     case '\n': case '\r': case KEY_ENTER:
+      act = 1; break;
+#if defined(KEY_MOUSE) && defined(NCURSES_MOUSE_VERSION)
+    case KEY_MOUSE:
+      switch (modal_list_mouse(top, left, w, h, NG_N, 0, NG_N, &sel)) {
+      case 2: act = 1; break;
+      case 3: done = 1; break;
+      }
+      break;
+#endif
+    case 27: case 'q':
+      done = 1; break;
+    }
+    if (act) {
       if (sel < 3) {
 	StartupGameLevel = sel;
 	GenerateSomeCity((int)Rand16());
@@ -536,9 +600,7 @@ nc_newgame_modal(void)
       CursorX = WORLD_X / 2; CursorY = WORLD_Y / 2;
       setSpeed(3);
       done = 1;
-      break;
-    case 27: case 'q':
-      done = 1; break;
+    }
     }
   }
   clear();
@@ -594,6 +656,7 @@ nc_load_embedded_modal(void)
     attrset(A_NORMAL);
     refresh();
 
+    { int act = 0;
     switch (getch()) {
     case ERR: break;
     case '`': nc_screenshot("/tmp/ttycity_shot.txt"); break;
@@ -602,6 +665,19 @@ nc_load_embedded_modal(void)
     case KEY_NPAGE:          sel += listh; break;
     case KEY_PPAGE:          sel -= listh; break;
     case '\n': case '\r': case KEY_ENTER:
+      act = 1; break;
+#if defined(KEY_MOUSE) && defined(NCURSES_MOUSE_VERSION)
+    case KEY_MOUSE:
+      switch (modal_list_mouse(top, left, w, h, listh, off, n, &sel)) {
+      case 2: act = 1; break;
+      case 3: done = 1; break;
+      }
+      break;
+#endif
+    case 27: case 'q':
+      done = 1; break;
+    }
+    if (act) {
       { const char *nm = EmbeddedCityName(sel);
 	char buf[256];
 	if (nm) {
@@ -615,9 +691,7 @@ nc_load_embedded_modal(void)
 	}
 	done = 1;
       }
-      break;
-    case 27: case 'q':
-      done = 1; break;
+    }
     }
   }
   clear();

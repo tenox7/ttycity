@@ -212,6 +212,58 @@ nc_menu_key(int ch)
   return 1;
 }
 
+/*
+ * Mouse click at (y,x): row 0 opens/toggles a menu title; a click inside an
+ * open dropdown runs that item; any other click while open just closes it.
+ * Returns 1 when the click was consumed.  Geometry mirrors nc_menu_draw.
+ */
+int
+nc_menu_mouse(int y, int x)
+{
+  int i, j, w, mx;
+  Menu *m;
+
+  if (y == 0) {				/* the menu bar itself */
+    mx = 1;
+    for (i = 0; i < NMENUS; i++) {
+      int tw = (int)strlen(menus[i].title) + 3;
+      if (x >= mx && x < mx + tw - 1) {
+	if (MenuOpen == i) MenuOpen = -1;
+	else { MenuOpen = i; MenuSel = 0; }
+	clear();
+	return 1;
+      }
+      mx += tw;
+    }
+    if (MenuOpen >= 0) { MenuOpen = -1; clear(); }
+    return 1;				/* bare bar: swallow the click */
+  }
+
+  if (MenuOpen < 0) return 0;
+
+  m = &menus[MenuOpen];
+  mx = 1;
+  for (i = 0; i < MenuOpen; i++) mx += (int)strlen(menus[i].title) + 3;
+  w = 0;
+  for (j = 0; j < m->n; j++) {
+    int l = (int)strlen(m->items[j].label) + 4;
+    if (l > w) w = l;
+  }
+  if (w < 12) w = 12;
+
+  j = y - 1;				/* dropdown rows start under the bar */
+  if (j >= 0 && j < m->n && x >= mx && x < mx + w) {
+    int id = m->items[j].id;
+    MenuOpen = -1;
+    if (id != A_SEP) do_action(id);
+    clear();
+    return 1;
+  }
+  MenuOpen = -1;			/* clicked elsewhere: close */
+  clear();
+  return 1;
+}
+
 void
 nc_menu_draw(int cols)
 {

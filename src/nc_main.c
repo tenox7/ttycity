@@ -55,6 +55,28 @@ int Quitting = 0;
 
 #define SIM_TICK_MS 50
 
+#ifdef NCURSES_MOUSE_VERSION
+static int MouseMotionOn = 0;
+
+/* xterm button-motion tracking (mode 1002): ncurses often only requests
+ * click reporting (1000), so the terminal never sends drag motion and a
+ * right-drag would look like a tap.  Ask for it ourselves; unknown private
+ * modes are ignored by terminals that lack them.  Turned off before every
+ * endwin so the terminal is left clean. */
+static void
+mouse_motion(int on)
+{
+  if (on) {
+    fputs("\033[?1002h", stdout);
+    MouseMotionOn = 1;
+  } else if (MouseMotionOn) {
+    fputs("\033[?1002l", stdout);
+    MouseMotionOn = 0;
+  }
+  fflush(stdout);
+}
+#endif
+
 sim_exit(int val)
 {
   tkMustExit = 1;
@@ -222,6 +244,12 @@ handle_key(int ch)
     return;
   }
 #endif
+#if defined(KEY_MOUSE) && defined(NCURSES_MOUSE_VERSION)
+  if (ch == KEY_MOUSE) {		/* before the menu: clicks drive it too */
+    nc_mouse(EditorView);
+    return;
+  }
+#endif
 
   /* menu bar takes priority while open; open it on Esc / F10 */
   if (nc_menu_active()) {
@@ -373,6 +401,19 @@ main(int argc, char *argv[])
 #ifdef NCURSES_VERSION
   set_escdelay(25);			/* make lone Esc responsive (menu key) */
 #endif
+#ifdef NCURSES_MOUSE_VERSION
+  /* BUTTON3_RELEASED un-merges right press/release (drag bookkeeping);
+   * REPORT_MOUSE_POSITION delivers motion while a button is held (pan). */
+  if (mousemask(BUTTON1_PRESSED | BUTTON1_CLICKED | BUTTON1_DOUBLE_CLICKED |
+		BUTTON3_PRESSED | BUTTON3_CLICKED | BUTTON3_RELEASED |
+		BUTTON4_PRESSED | REPORT_MOUSE_POSITION
+#if NCURSES_MOUSE_VERSION > 1
+		| BUTTON5_PRESSED		/* wheel down */
+#endif
+		, NULL))
+    mouse_motion(1);
+  mouseinterval(0);			/* act on press; no click-resolve delay */
+#endif
   nc_colors_init();
 
   env_init();
@@ -380,6 +421,9 @@ main(int argc, char *argv[])
 
   if (loadfile) {
     if (!start_load_city(loadfile)) {
+#ifdef NCURSES_MOUSE_VERSION
+      mouse_motion(0);
+#endif
       endwin();
       fprintf(stderr, "Could not load city file '%s'\n", loadfile);
       return 1;
@@ -408,6 +452,9 @@ main(int argc, char *argv[])
     nc_menu_draw(COLS);
     refresh();
     nc_screenshot(shot_path);
+#ifdef NCURSES_MOUSE_VERSION
+    mouse_motion(0);
+#endif
     endwin();
     return 0;
   }
@@ -444,6 +491,9 @@ main(int argc, char *argv[])
     refresh();
   }
 
+#ifdef NCURSES_MOUSE_VERSION
+  mouse_motion(0);
+#endif
   endwin();
   return ExitReturn;
 }

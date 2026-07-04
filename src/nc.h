@@ -46,6 +46,7 @@ extern int ToolbarW;				/* left tool-palette width */
 extern int ThemeLand;				/* land background color */
 char *nc_cycle_theme(void);			/* Options menu: cycle land color */
 void  nc_set_theme(char *name);			/* -theme tan|grass|dark */
+int  nc_toolbar_hit(int y, int x);		/* click -> tool state, or -1 */
 void nc_colors_init(void);
 int  nc_transit_class(int t);			/* 0 none, 1 road, 2 rail, 3 wire */
 int  nc_transit_mask(int x, int y, int cls);	/* up/dn/lf/rt neighbor bits */
@@ -69,12 +70,14 @@ int  nc_prompt(char *title, char *buf, int buflen);
 int  nc_menu_active(void);
 void nc_menu_enter(void);
 int  nc_menu_key(int ch);			/* returns 1 if consumed */
+int  nc_menu_mouse(int y, int x);		/* click; returns 1 if consumed */
 void nc_menu_draw(int cols);
 
 /* --- nc_minimap.c -------------------------------------------------------- */
 void nc_draw_minimap(void);			/* sets MinimapW, draws the panel */
 void nc_minimap_cycle(void);			/* 'm' key: cycle overlay/off */
 int  nc_minimap_on(void);
+int  nc_minimap_hit(int y, int x, int *tx, int *ty);	/* click -> tile coords */
 
 /* --- nc_status.c --------------------------------------------------------- */
 extern int NoticeActive;
@@ -111,5 +114,8 @@ void nc_query_dismiss(void);
 void nc_show_zone_status(char *zone, char *s0, char *s1, char *s2,
 			 char *s3, char *s4, int x, int y);
 void nc_did_tool(char *name, int x, int y);
+#ifdef NCURSES_MOUSE_VERSION
+void nc_mouse(SimView *view);			/* KEY_MOUSE dispatcher */
+#endif
 
 #endif /* NC_H */

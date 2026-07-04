@@ -300,6 +300,23 @@ info_line(int y, int x, char *s, int w, int bot, int attr)
 extern char *cityClassStr[6];		/* w_eval.c */
 extern int makeDollarDecimalStr(char *numStr, char *dollarStr);
 
+/* toolbar grid layout of the last frame (set by nc_draw_toolbar) */
+static int TbCellw = 3, TbLpad = 0;
+
+/* Map a click to a tool state (the grid starts on screen row 2), or -1. */
+int
+nc_toolbar_hit(int y, int x)
+{
+  int r = y - 2, c, i, idx = 0;
+
+  if (x < TbLpad || x >= ToolbarW) return -1;
+  if (r < 0 || r >= nc_toolbar_gridrows()) return -1;
+  c = (x - TbLpad) / TbCellw;
+  if (c >= nc_toolbar_rowlen(r)) return -1;
+  for (i = 0; i < r; i++) idx += nc_toolbar_rowlen(i);
+  return nc_toolbar_state(idx + c);
+}
+
 /*
  * The left panel: a 3-column tool GRID (grouped rows, short codes dense /
  * "[RE]" expanded) followed by an info block -- current tool + cost, the RCI
@@ -330,6 +347,8 @@ nc_draw_toolbar(SimView *view)
   else                 { lpad = 0; rpad = 0; }
   tw = lpad + contentw + rpad;
   ToolbarW = tw;
+  TbCellw = cellw;		/* remembered for mouse hit-testing */
+  TbLpad = lpad;
 
   attrset(NC_CP(COLOR_BLACK, COLOR_WHITE));	/* white panel, matching menu/status bars */
   for (r = 0; r < height; r++) {		/* clear the whole toolbar column */
@@ -346,13 +365,9 @@ nc_draw_toolbar(SimView *view)
       int attr = NC_CP(tool_panel_color(idx), COLOR_WHITE);	/* colored letters */
 
       if (view->tool_state == st) attr |= A_REVERSE | A_BOLD;	/* selected tool */
-      if (Gfx->emojiui) {		/* emoji button faces (unicode mode) */
-	if (expanded) sprintf(cell, "[%s]", nc_toolbar_emoji(idx));
-	else          sprintf(cell, "%s",   nc_toolbar_emoji(idx));
+      if (Gfx->emojiui) {		/* bare emoji faces; A_REVERSE = selected */
 	attrset(attr);
-	mvaddstr(top + 1 + r, lpad + c * cellw, cell);
-	if (!expanded)			/* no brackets to flip: mark with '<' */
-	  addch(view->tool_state == st ? '<' : ' ');
+	mvaddstr(top + 1 + r, lpad + c * cellw, nc_toolbar_emoji(idx));
 	continue;
       }
       if (expanded) sprintf(cell, "[%s]", nc_toolbar_lcode(idx));
@@ -421,7 +436,7 @@ nc_draw_editor(SimView *view)
   EdTop = 1;				/* row 0 = menu bar; toolbar is a left column */
   EdLeft = ToolbarW;
   EdH = rows - 2;			/* menu (1) + status line (1) */
-  EdW = cols - ToolbarW - MinimapW;
+  EdW = cols - ToolbarW - MinimapW - 1;	/* -1: right scrollbar gutter */
   if (EdH < 1) EdH = 1;
   if (EdW < 1) EdW = cols;
 
@@ -462,6 +477,23 @@ nc_draw_editor(SimView *view)
     Gfx->cursor(EdTop + sy, EdLeft + tx * tw, CursorX, CursorY);
 
   nc_draw_sprites();			/* moving objects over the tile layer */
+
+  /* vertical scroll marker: white thumb in the black right-edge gutter */
+  sx = EdLeft + EdW;
+  if (sx < cols) {
+    int t0 = 0, tl = EdH;
+    if (EdH < WORLD_Y) {
+      tl = EdH * EdH / WORLD_Y;
+      if (tl < 1) tl = 1;
+      t0 = (EdH - tl) * ViewPanY / (WORLD_Y - EdH);
+    }
+    for (sy = 0; sy < EdH; sy++) {
+      attrset((sy >= t0 && sy < t0 + tl) ? NC_CP(COLOR_BLACK, COLOR_WHITE)
+					 : NC_CP(COLOR_WHITE, COLOR_BLACK));
+      mvaddch(EdTop + sy, sx, ' ');
+    }
+    attrset(A_NORMAL);
+  }
 }
 
 /* Sprite glyph by type (TRA COP AIR SHI GOD TOR EXP BUS = 1..8). */

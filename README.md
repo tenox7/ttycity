@@ -39,6 +39,13 @@ optional overview map on the right, and a status line at the bottom.
 | Esc / F10       | open the menu bar |
 | `g`             | new random city · `q` quit |
 
+**Mouse** (when the curses library supports it, any graphics mode):
+left-click builds with the current tool (menus, tool palette and overview
+map are clickable too — a minimap click jumps there; pick the Query tool
+to inspect zones); hold the **right button and drag to pan** the map; the
+wheel scrolls.  Scrollbars on the right and bottom edges show where the
+viewport sits in the 120×100 world.
+
 Menus cover New Game / scenarios, Load & Save, the Budget, City Evaluation,
 History graphs, disasters, and options (auto-budget, sound, land color, …).
 The interface is resizable and works down to 80×24.
