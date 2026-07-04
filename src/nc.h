@@ -1,0 +1,93 @@
+/* nc.h  --  shared declarations for the ncurses Micropolis front end.
+ *
+ * Included by the nc_*.c files after <curses.h>.  Only the terminal UI uses
+ * this; the simulation engine never sees it.
+ */
+
+#ifndef NC_H
+#define NC_H
+
+/* --- color pairs ---------------------------------------------------------
+ * We allocate one curses pair per (fg,bg) combination: pair = fg*8 + bg + 1,
+ * giving 1..64 (SysV curses guarantees at least 64 pairs).  A_BOLD supplies
+ * the 8 "bright" tones on top of the 8 base colors.
+ */
+#define NC_PAIR(fg, bg) (((fg) * 8 + (bg)) + 1)
+#define NC_CP(fg, bg)   COLOR_PAIR(NC_PAIR((fg), (bg)))
+
+/* --- shared editor/view state (owned by nc_main.c) ----------------------- */
+extern SimView *EditorView;		/* the single editor view */
+extern int CursorX, CursorY;		/* cursor position in tile coords */
+extern int ViewPanX, ViewPanY;		/* top-left visible tile */
+extern int Quitting;
+
+/* --- nc_render.c --------------------------------------------------------- */
+extern int EdTop, EdLeft, EdW, EdH;		/* editor region (screen coords) */
+extern int MinimapW;				/* right minimap panel width (0=off) */
+extern int ToolbarW;				/* left tool-palette width */
+extern int ThemeLand;				/* land background color */
+char *nc_cycle_theme(void);			/* Options menu: cycle land color */
+void  nc_set_theme(char *name);			/* -theme tan|grass|dark */
+void nc_colors_init(void);
+chtype nc_cell(int mapx, int mapy);		/* decode Map[x][y] -> glyph */
+void nc_draw_editor(SimView *view);		/* render viewport to stdscr */
+void nc_draw_toolbar(SimView *view);		/* vertical left tool palette */
+void nc_screenshot(char *path);			/* dump stdscr as ASCII (testing) */
+
+/* --- nc_dialogs.c -------------------------------------------------------- */
+void nc_budget_modal(void);			/* engine callback (w_budget.c) */
+void nc_eval_modal(void);
+void nc_graph_modal(void);
+void nc_newgame_modal(void);
+void nc_load_modal(void);			/* load .cty from disk (browser) */
+void nc_load_embedded_modal(void);		/* load a baked-in example city */
+void nc_save_modal(int saveas);
+int  nc_prompt(char *title, char *buf, int buflen);
+
+/* --- nc_menu.c ----------------------------------------------------------- */
+int  nc_menu_active(void);
+void nc_menu_enter(void);
+int  nc_menu_key(int ch);			/* returns 1 if consumed */
+void nc_menu_draw(int cols);
+
+/* --- nc_minimap.c -------------------------------------------------------- */
+void nc_draw_minimap(void);			/* sets MinimapW, draws the panel */
+void nc_minimap_cycle(void);			/* 'm' key: cycle overlay/off */
+int  nc_minimap_on(void);
+
+/* --- nc_status.c --------------------------------------------------------- */
+extern int NoticeActive;
+void nc_set_status(char *msg);			/* transient status-line message */
+void nc_clear_status(void);
+void nc_draw_status(SimView *view);		/* the bottom status line */
+void nc_auto_goto(int x, int y);		/* engine callback */
+void nc_show_notice(int id);			/* engine callback */
+void nc_draw_notice(void);
+void nc_notice_dismiss(void);
+
+/* --- nc_input.c ---------------------------------------------------------- */
+extern int QueryActive;
+char *nc_tool_name(int state);
+int  nc_tool_from_key(int ch);			/* letter -> tool state, or -1 */
+int  nc_toolbar_count(void);
+int  nc_toolbar_state(int i);
+int  nc_toolbar_color(int i);
+int  nc_toolbar_bg(int i);
+char nc_toolbar_key(int i);
+char *nc_toolbar_code(int i);
+char *nc_toolbar_lcode(int i);
+int  nc_toolbar_gridrows(void);
+int  nc_toolbar_rowlen(int r);
+void nc_tool_next(SimView *view);
+void nc_tool_prev(SimView *view);
+void nc_tool_select(SimView *view, int state);
+void nc_apply_tool(SimView *view);
+int  nc_tool_cost(int state);
+void nc_draw_query(void);
+void nc_query_dismiss(void);
+/* engine callbacks (called from w_tool.c) */
+void nc_show_zone_status(char *zone, char *s0, char *s1, char *s2,
+			 char *s3, char *s4, int x, int y);
+void nc_did_tool(char *name, int x, int y);
+
+#endif /* NC_H */
