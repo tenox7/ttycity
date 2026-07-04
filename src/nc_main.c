@@ -449,6 +449,7 @@ main(int argc, char *argv[])
     nc_draw_minimap();
     nc_draw_editor(EditorView);
     nc_draw_status(EditorView);
+    nc_draw_minimap_late();
     nc_menu_draw(COLS);
     refresh();
     nc_screenshot(shot_path);
@@ -485,6 +486,7 @@ main(int argc, char *argv[])
     nc_draw_minimap();		/* sets MinimapW before the editor sizes itself */
     nc_draw_editor(EditorView);
     nc_draw_status(EditorView);
+    nc_draw_minimap_late();	/* narrow-terminal overlay, over the editor */
     nc_menu_draw(COLS);		/* bar + dropdown on top of the editor */
     nc_draw_query();
     nc_draw_notice();

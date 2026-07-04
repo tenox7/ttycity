@@ -85,9 +85,10 @@ static char *wire_gl[16] = {
 /* Zone lot decode (see zone_glyph, nc_render.c): a built zone is a 3x3 image
  * of consecutive tiles with the density baked into the index.  Returns the
  * density 0..dmod-1, or -1 if t is outside the built range; *vac = 1 when
- * this lot cell is still undeveloped at that density. */
-static int
-zone_den(int t, int builtBase, int builtHi, int dmod, int *vac)
+ * this lot cell is still undeveloped at that density.  Shared with the
+ * minimap's unicode renderer (nc_minimap.c). */
+int
+nc_zone_den(int t, int builtBase, int builtHi, int dmod, int *vac)
 {
   static int rank[9] = { 5, 1, 6,  3, 0, 4,  7, 2, 8 };
   int off, den, thr;
@@ -223,7 +224,7 @@ uni_tile(int sy, int sx, int mx, int my)
       uput(sy, sx, "🏡", COLOR_BLACK, COLOR_CYAN, 0);
       return;
     }
-    den = zone_den(t, RZB - 4, HOSPITAL - 5, 4, &vac);
+    den = nc_zone_den(t, RZB - 4, HOSPITAL - 5, 4, &vac);
     if (den >= 0) {
       if (center)   uput(sy, sx, res_ctr[den], COLOR_BLACK, COLOR_CYAN, 0);
       else if (vac) uput(sy, sx, "░░", COLOR_BLACK, COLOR_CYAN, 0);
@@ -239,7 +240,7 @@ uni_tile(int sy, int sx, int mx, int my)
     return;
   }
   if (t >= COMBASE && t < INDBASE) {
-    den = zone_den(t, CZB - 4, INDBASE - 1, 5, &vac);
+    den = nc_zone_den(t, CZB - 4, INDBASE - 1, 5, &vac);
     if (den >= 0) {
       if (center)   uput(sy, sx, com_ctr[den], COLOR_WHITE, COLOR_BLUE, A_BOLD);
       else if (vac) uput(sy, sx, "░░", COLOR_WHITE, COLOR_BLUE, 0);
@@ -255,7 +256,7 @@ uni_tile(int sy, int sx, int mx, int my)
     return;
   }
   if (t >= INDBASE && t < PORTBASE) {
-    den = zone_den(t, IZB - 4, PORTBASE - 1, 4, &vac);
+    den = nc_zone_den(t, IZB - 4, PORTBASE - 1, 4, &vac);
     if (den >= 0) {
       if (center)   uput(sy, sx, ind_ctr[den], COLOR_YELLOW, COLOR_MAGENTA, A_BOLD);
       else if (vac) uput(sy, sx, "░░", COLOR_YELLOW, COLOR_MAGENTA, 0);

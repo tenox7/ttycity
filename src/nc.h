@@ -38,6 +38,7 @@ struct GfxOps {
 extern struct GfxOps *Gfx;			/* current mode */
 int   nc_gfx_set(char *name);			/* -gfx <name>; 0 = unknown/unavail */
 char *nc_gfx_cycle(void);			/* 'u' key / Options menu */
+int   nc_zone_den(int t, int builtBase, int builtHi, int dmod, int *vac);
 
 /* --- nc_render.c --------------------------------------------------------- */
 extern int EdTop, EdLeft, EdW, EdH;		/* editor region (screen coords) */
@@ -74,10 +75,13 @@ int  nc_menu_mouse(int y, int x);		/* click; returns 1 if consumed */
 void nc_menu_draw(int cols);
 
 /* --- nc_minimap.c -------------------------------------------------------- */
-void nc_draw_minimap(void);			/* sets MinimapW, draws the panel */
+void nc_draw_minimap(void);			/* sets MinimapW, draws side panel */
+void nc_draw_minimap_late(void);		/* narrow overlay, after the editor */
 void nc_minimap_cycle(void);			/* 'm' key: cycle overlay/off */
+void nc_minimap_close(void);			/* close button */
 int  nc_minimap_on(void);
-int  nc_minimap_hit(int y, int x, int *tx, int *ty);	/* click -> tile coords */
+/* click: 0 = not ours, 1 = map grid (*tx,*ty), 2 = close button, 3 = chrome */
+int  nc_minimap_hit(int y, int x, int *tx, int *ty);
 
 /* --- nc_status.c --------------------------------------------------------- */
 extern int NoticeActive;

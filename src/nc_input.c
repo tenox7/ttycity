@@ -311,16 +311,22 @@ nc_mouse(SimView *view)
 
   if (nc_menu_mouse(e.y, e.x)) return;
 
-  t = nc_toolbar_hit(e.y, e.x);
-  if (t >= 0) {
-    nc_tool_select(view, t);
+  /* minimap before toolbar/editor: on narrow terminals it overlays both */
+  switch (nc_minimap_hit(e.y, e.x, &mx, &my)) {
+  case 1:				/* map grid: jump the cursor there */
+    CursorX = mx;
+    CursorY = my;
+    return;
+  case 2:				/* close button */
+    nc_minimap_close();
+    return;
+  case 3:				/* panel chrome: swallow the click */
     return;
   }
 
-  /* minimap first: on narrow terminals it overlays the editor */
-  if (nc_minimap_hit(e.y, e.x, &mx, &my)) {
-    CursorX = mx;
-    CursorY = my;
+  t = nc_toolbar_hit(e.y, e.x);
+  if (t >= 0) {
+    nc_tool_select(view, t);
     return;
   }
 
