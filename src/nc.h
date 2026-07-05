@@ -48,6 +48,7 @@ struct GfxOps {
 extern struct GfxOps *Gfx;			/* current mode */
 extern struct GfxOps GfxAA;			/* nc_aa.c: aalib-style shading */
 int   nc_gfx_set(char *name);			/* -gfx <name>; 0 = unknown/unavail */
+void  nc_gfx_auto(void);			/* no -gfx: pick from TERM/locale */
 char *nc_gfx_cycle(void);			/* 'u' key / Options menu */
 int   nc_zone_den(int t, int builtBase, int builtHi, int dmod, int *vac);
 

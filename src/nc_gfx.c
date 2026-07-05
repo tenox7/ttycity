@@ -58,11 +58,25 @@ df_cursor(int sy, int sx, int mx, int my)
 
 /* ======================== unicode mode (2 cols/tile) ====================== */
 
-/* needs a multibyte (UTF-8) locale; setlocale(LC_ALL,"") ran at startup */
+/* Needs a UTF-8 locale; setlocale(LC_ALL,"") ran at startup.  MB_CUR_MAX > 1
+ * alone would also pass EUC/Big5 locales, where our UTF-8 byte strings are
+ * mojibake, so additionally ask for "utf" in the locale name, taken from the
+ * environment in POSIX precedence order. */
 static int
 uni_avail(void)
 {
-  return MB_CUR_MAX > 1;
+  char *s;
+
+  if (MB_CUR_MAX <= 1) return 0;
+  s = getenv("LC_ALL");
+  if (!s || !*s) s = getenv("LC_CTYPE");
+  if (!s || !*s) s = getenv("LANG");
+  for (; s && *s; s++) {
+    if ((s[0] == 'u' || s[0] == 'U') &&
+	(s[1] == 't' || s[1] == 'T') &&
+	(s[2] == 'f' || s[2] == 'F')) return 1;
+  }
+  return 0;
 }
 
 /* put one 2-column tile: colors around/behind the glyph, then the glyph */
@@ -571,6 +585,35 @@ nc_gfx_set(char *name)
     return 1;
   }
   return 0;
+}
+
+/* Pick a startup mode from the environment when no -gfx flag was given; runs
+ * after initscr() so has_colors() reflects the real terminfo entry.
+ *   no color      -> ascii    vt100/vt220/dumb/xterm-mono, real DEC iron, the
+ *                             OpenBSD console: no color capability, and the
+ *                             7-bit mode is the only safe bet there anyway.
+ *   modern + UTF-8-> unicode  needs emoji fonts, not just a UTF-8 locale, so
+ *                             ask for an emulator-class TERM ("256color") or
+ *                             COLORTERM=truecolor|24bit (kitty, alacritty,
+ *                             foot, ghostty advertise that way).  Raw consoles
+ *                             (linux, cons25, wsvt25, FreeBSD vt's "xterm")
+ *                             set neither -- their fonts have no emoji.
+ *   anything else -> default  8 colors + ACS works on every color terminal:
+ *                             plain xterm, screen/tmux, the consoles above,
+ *                             regardless of locale (ACS is locale-blind). */
+void
+nc_gfx_auto(void)
+{
+  char *term = getenv("TERM");
+  char *ct = getenv("COLORTERM");
+
+  if (!has_colors()) {
+    nc_gfx_set("ascii");
+    return;
+  }
+  if ((term && strstr(term, "256color")) ||
+      (ct && (!strcmp(ct, "truecolor") || !strcmp(ct, "24bit"))))
+    nc_gfx_set("unicode");	/* still refused unless the locale is UTF-8 */
 }
 
 /* step to the next available mode; returns its name (for the status line) */

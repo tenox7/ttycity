@@ -415,8 +415,8 @@ main(int argc, char *argv[])
     mouse_motion(1);
   mouseinterval(0);			/* act on press; no click-resolve delay */
 #endif
-  if (!gfxname && !has_colors())
-    nc_gfx_set("ascii");		/* mono terminal: the color-free mode */
+  if (!gfxname)
+    nc_gfx_auto();		/* mono -> ascii, UTF-8 emulator -> unicode */
   nc_colors_init();
 
   env_init();
