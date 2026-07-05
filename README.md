@@ -16,6 +16,17 @@ All assets (strings, scenarios, example cities) are baked into the binary — no
 ./ttycity -gfx aa               # aalib rendering (optional build)
 ```
 
+## Graphics modes
+
+Select with `-gfx <name>`, the `u` key, or *Options → Graphics*:
+
+- **standard** (`color`) — one char per tile, ASCII + ACS + 8 colors; runs on any curses. The default.
+- **unicode** — two columns per tile: emoji buildings/vehicles, box-drawing roads, braille terrain. Needs UTF-8 and wide-char curses (`make CURSES=-lncursesw` on Linux).
+- **ascii** (`vt100`, `mono`) — strict 7-bit, no color, bold/reverse only.
+- **aa** (`aalib`) — tiles rendered through [aalib](https://aa-project.sourceforge.net/aalib/), in color. Off by default: build with `make aalib` (add `AA_PREFIX=/opt/homebrew` if needed).
+
+Without `-gfx` the mode is auto-detected from `TERM`/locale.
+
 ## Playing
 
 | keys | action |
@@ -30,17 +41,6 @@ All assets (strings, scenarios, example cities) are baked into the binary — no
 | `g`             | new city · `q` quit |
 
 Mouse supported: click to build, right-drag to pan, wheel scrolls; menus, palette and minimap are clickable. Resizable, works down to 80×24.
-
-## Graphics modes
-
-Select with `-gfx <name>`, the `u` key, or *Options → Graphics*:
-
-- **standard** (`color`) — one char per tile, ASCII + ACS + 8 colors; runs on any curses. The default.
-- **unicode** — two columns per tile: emoji buildings/vehicles, box-drawing roads, braille terrain. Needs UTF-8 and wide-char curses (`make CURSES=-lncursesw` on Linux).
-- **ascii** (`vt100`, `mono`) — strict 7-bit, no color, bold/reverse only.
-- **aa** (`aalib`) — tiles rendered through [aalib](https://aa-project.sourceforge.net/aalib/), in color. Off by default: build with `make aalib` (add `AA_PREFIX=/opt/homebrew` if needed).
-
-Without `-gfx` the mode is auto-detected from `TERM`/locale.
 
 ## Legal
 
