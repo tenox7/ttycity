@@ -11,9 +11,18 @@
  * We allocate one curses pair per (fg,bg) combination: pair = fg*8 + bg + 1,
  * giving 1..64 (SysV curses guarantees at least 64 pairs).  A_BOLD supplies
  * the 8 "bright" tones on top of the 8 base colors.
+ *
+ * NC_MONO is true when no color must be emitted: a mono gfx mode (Gfx->mono,
+ * e.g. "ascii") or a terminal without color support.  NC_CP then yields
+ * pair 0 -- the terminal's own default colors -- so nothing on the screen is
+ * ever colored or remapped; bold and reverse video still apply.  NC_MSEL(x)
+ * is for selection/highlight bars: the colored attribute normally, plain
+ * reverse video when there is no color to highlight with.
  */
 #define NC_PAIR(fg, bg) (((fg) * 8 + (bg)) + 1)
-#define NC_CP(fg, bg)   COLOR_PAIR(NC_PAIR((fg), (bg)))
+#define NC_MONO         (Gfx->mono || !has_colors())
+#define NC_CP(fg, bg)   (NC_MONO ? 0 : COLOR_PAIR(NC_PAIR((fg), (bg))))
+#define NC_MSEL(colored) (NC_MONO ? A_REVERSE : (colored))
 
 /* --- shared editor/view state (owned by nc_main.c) ----------------------- */
 extern SimView *EditorView;		/* the single editor view */
@@ -30,6 +39,7 @@ struct GfxOps {
   char *name;					/* "default", "unicode", ... */
   int tilew;					/* screen columns per map tile */
   int emojiui;					/* emoji faces on the tool palette */
+  int mono;					/* emit no color anywhere (see NC_MONO) */
   int (*avail)(void);				/* runtime check (NULL = always) */
   void (*tile)(int sy, int sx, int mapx, int mapy);
   void (*sprite)(int sy, int sx, int type);

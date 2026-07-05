@@ -182,6 +182,39 @@ nc_minimap_hit(int y, int x, int *tx, int *ty)
 
 /* ===================== default mode (colored blocks) ===================== */
 
+/* Monochrome cell, used when no color is emitted (NC_MONO: the ascii gfx
+ * mode, or a terminal without colors -- the colored ' ' blocks would be
+ * invisible): the overlay as a character intensity ramp, the base map as
+ * tiny tile classes.  Mirrors val_color/base_color one to one. */
+static chtype
+mono_cell(int v, int tx, int ty)
+{
+  static char vch[12] = {
+    ' ', '.', '+', '*', '#',	/* NONE LOW MEDIUM HIGH VERYHIGH */
+    '+', '#', '-', '=',		/* PLUS VERYPLUS MINUS VERYMINUS */
+    '#', '+', 'x'		/* POW_ON POW_COND POW_OFF */
+  };
+  int t;
+
+  if (v > 0) {
+    if (v == POW_OFF) return ((chtype)'x') | A_BOLD | A_REVERSE;
+    return ((chtype)vch[v]) | (val_bold[v] ? A_BOLD : 0);
+  }
+  t = Map[tx][ty] & LOMASK;
+  if (t >= RIVER && t <= LASTRIVEDGE) return (chtype)'~';
+  if (t >= TREEBASE && t <= WOODS5) return (chtype)'^';
+  if (t >= ROADBASE && t <= LASTROAD) return (chtype)'+';
+  if (t >= POWERBASE && t <= LASTPOWER) return (chtype)'=';
+  if (t >= RAILBASE && t <= LASTRAIL) return (chtype)'+';
+  if (t >= RESBASE && t < COMBASE) return (chtype)'r';
+  if (t >= COMBASE && t < INDBASE) return (chtype)'c';
+  if (t >= INDBASE && t < PORTBASE) return (chtype)'i';
+  if (t >= PORTBASE && t <= LASTPOWERPLANT) return ((chtype)'#') | A_BOLD;
+  if (t >= FIRESTBASE && t <= POLICESTATION) return (chtype)'#';
+  if (t >= FIREBASE && t <= LASTFIRE) return ((chtype)'!') | A_BOLD | A_REVERSE;
+  return (chtype)' ';
+}
+
 static void
 draw_ascii(int top, int left, int w, int h)
 {
@@ -201,6 +234,7 @@ draw_ascii(int top, int left, int w, int h)
   CloseY = top; CloseX = left + w - 4; CloseW = 3;
   mvaddstr(CloseY, CloseX, "[X]");
 
+  if (NC_MONO) attrset(A_NORMAL);
   for (sy = 0; sy < ih; sy++) {
     ty = sy * WORLD_Y / ih;
     if (ty >= WORLD_Y) ty = WORLD_Y - 1;
@@ -209,6 +243,10 @@ draw_ascii(int top, int left, int w, int h)
       if (tx >= WORLD_X) tx = WORLD_X - 1;
 
       v = overlay_val(state, tx, ty);
+      if (NC_MONO) {			/* char ramp; bg fills are invisible */
+	mvaddch(top + 1 + sy, left + 1 + sx, mono_cell(v, tx, ty));
+	continue;
+      }
       color = (v > 0) ? val_color[v] : -1;
       bold = (v > 0) ? val_bold[v] : 0;
       if (color < 0) { color = base_color(tx, ty); bold = 0; }

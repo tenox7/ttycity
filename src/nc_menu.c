@@ -275,7 +275,7 @@ nc_menu_draw(int cols)
   x = 1;
   for (i = 0; i < NMENUS; i++) {
     int hot = (MenuOpen == i);
-    attrset(hot ? (NC_CP(COLOR_WHITE, COLOR_BLUE) | A_BOLD)
+    attrset(hot ? NC_MSEL(NC_CP(COLOR_WHITE, COLOR_BLUE) | A_BOLD)
 		: NC_CP(COLOR_BLACK, COLOR_WHITE));
     mvaddch(0, x, ' ');
     mvaddstr(0, x + 1, menus[i].title);
@@ -298,7 +298,7 @@ nc_menu_draw(int cols)
       char line[64];
       int st, sel = (j == MenuSel);
       Item *it = &m->items[j];
-      attrset(sel ? (NC_CP(COLOR_BLACK, COLOR_CYAN) | A_BOLD)
+      attrset(sel ? NC_MSEL(NC_CP(COLOR_BLACK, COLOR_CYAN) | A_BOLD)
 		  : NC_CP(COLOR_WHITE, COLOR_BLUE));
       if (it->id == A_SEP) {
 	int k; move(1 + j, mx); for (k = 0; k < w; k++) addch('-');

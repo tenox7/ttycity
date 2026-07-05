@@ -10,9 +10,15 @@
  *            and rails, quadrant-block density fills, braille terrain
  *            texture, legacy-computing checker.  Needs a UTF-8 locale and a
  *            wide-capable curses (macOS -lcurses is; Linux: -lncursesw).
+ *   ascii    1 col/tile, strict 7-bit ASCII and no color anywhere -- only
+ *            bold and reverse video, the vt100-era look.  Poor man's line
+ *            drawing (| - + =), buildings as reverse-video blocks.  The
+ *            mono flag makes NC_CP (nc.h) yield pair 0 everywhere, so the
+ *            whole program draws in the terminal's own default colors;
+ *            color pairs are never touched or remapped.
  *
  * Future slots (see TODO.md): braille 2x4-dot microtiles, aalib-style
- * shading, pure 7-bit ASCII, B&W.  Add a GfxOps and list it in modes[].
+ * shading.  Add a GfxOps and list it in modes[].
  *
  * Portability: this file stays C89 and uses no wide-char APIs -- the UTF-8
  * glyphs are plain byte strings pushed through addstr(), so it still COMPILES
@@ -373,15 +379,173 @@ uni_cursor(int sy, int sx, int mx, int my)
   attrset(A_NORMAL);
 }
 
+/* ==================== ascii mode (1 col/tile, monochrome) ================= */
+
+/* Poor man's line drawing indexed by nc_transit_mask (up<<3|dn<<2|lf<<1|rt).
+ * Roads and wires share the | - + set (wires drawn bold); rails get '='
+ * horizontals and are drawn in reverse video (the ballast strip, like the
+ * default mode's black-on-white). */
+static char as_road[17] = "+---|+++|+++|+++";
+static char as_rail[17] = "+===|+++|+++|+++";
+
+/* One zone lot cell (mirrors zone_glyph, nc_render.c, minus the colors):
+ * reverse-video bold letter = built center, UPPER/lower letter = dense/sparse
+ * lot, '.' = still-vacant lot, bare letter = empty designated zone. */
+static chtype
+as_zone(int t, int raw, int letter, int emptyBase, int builtBase,
+	int builtHi, int dmod)
+{
+  int den, vac;
+
+  den = nc_zone_den(t, builtBase, builtHi, dmod, &vac);
+  if (den >= 0) {					/* built zone */
+    if (raw & ZONEBIT) return ((chtype)letter) | A_BOLD | A_REVERSE;
+    if (vac) return (chtype)'.';
+    if (den * 2 >= dmod) return ((chtype)letter) | A_BOLD;
+    return (chtype)(letter + 32);
+  }
+  if (t >= emptyBase && t <= emptyBase + 8)		/* empty designated lot */
+    return (t - emptyBase == 4) ? (chtype)letter : (chtype)'.';
+  return (chtype)(letter + 32);				/* stray tile */
+}
+
+/* Big civic buildings: a reverse-video block with a bold letter at the
+ * center tile, so a 3x3 station reads as one solid building. */
+static chtype
+as_bldg(int raw, int letter)
+{
+  if (raw & ZONEBIT) return ((chtype)letter) | A_BOLD | A_REVERSE;
+  return ((chtype)' ') | A_REVERSE;
+}
+
+/* Decode Map[mx][my] -> 7-bit glyph + mono attributes (same tile decode as
+ * nc_cell; the art maps the default mode's palette onto A_BOLD/A_REVERSE). */
+static chtype
+as_cell(int mx, int my)
+{
+  int raw = Map[mx][my];
+  int blink = (flagBlink <= 0);
+  int t, cls;
+
+  t = raw;
+  if ((t & LOMASK) >= TILE_COUNT) t -= TILE_COUNT;
+  if (blink && (t & ZONEBIT) && !(t & PWRBIT)) {
+    t = LIGHTNINGBOLT;
+  } else {
+    t &= LOMASK;
+  }
+
+  if (t == LIGHTNINGBOLT)				/* unpowered zone blink */
+    return ((chtype)'!') | A_BOLD;
+
+  cls = nc_transit_class(t);
+  if (cls == 1) {
+    if (t >= HTRFBASE && t <= LASTROAD)			/* heavy traffic */
+      return ((chtype)(((mx + my) & 1) ? ',' : '`')) | A_BOLD;
+    return (chtype)as_road[nc_transit_mask(mx, my, 1)];
+  }
+  if (cls == 2)
+    return ((chtype)as_rail[nc_transit_mask(mx, my, 2)]) | A_REVERSE;
+  if (cls == 3)
+    return ((chtype)as_road[nc_transit_mask(mx, my, 3)]) | A_BOLD;
+
+  if (t == DIRT) return (chtype)'.';
+  if (t >= RIVER && t <= LASTRIVEDGE) return (chtype)'~';
+  if (t >= TREEBASE && t < WOODS2) return (chtype)'^';
+  if (t >= WOODS2 && t <= WOODS5) return (chtype)'"';	/* user-placed park */
+  if (t >= RUBBLE && t <= LASTRUBBLE) return (chtype)'%';
+  if (t >= FLOOD && t <= LASTFLOOD) return ((chtype)'~') | A_BOLD;
+  if (t == RADTILE) return ((chtype)'*') | A_BOLD;
+  if (t >= FIREBASE && t <= LASTFIRE) return ((chtype)'!') | A_BOLD | A_REVERSE;
+
+  if (t >= HOSPITAL - 4 && t <= HOSPITAL + 4)
+    return (t == HOSPITAL) ? (((chtype)'H') | A_BOLD | A_REVERSE)
+			   : (((chtype)' ') | A_REVERSE);
+  if (t >= CHURCH - 4 && t <= CHURCH + 4)
+    return (t == CHURCH) ? (((chtype)'X') | A_BOLD | A_REVERSE)
+			 : (((chtype)' ') | A_REVERSE);
+
+  if (t >= RESBASE && t < COMBASE) {
+    if (t >= LHTHR && t <= HHTHR) return (chtype)'r';	/* single family house */
+    return as_zone(t, raw, 'R', RESBASE, RZB - 4, HOSPITAL - 5, 4);
+  }
+  if (t >= COMBASE && t < INDBASE)
+    return as_zone(t, raw, 'C', COMBASE, CZB - 4, INDBASE - 1, 5);
+  if (t >= INDBASE && t < PORTBASE)
+    return as_zone(t, raw, 'I', INDBASE, IZB - 4, PORTBASE - 1, 4);
+
+  if (t >= PORTBASE && t <= LASTPORT) return as_bldg(raw, 'W');
+  if (t >= RADAR0 && t <= RADAR7)			/* airport tower (anim) */
+    return ((chtype)'A') | A_REVERSE;
+  if (t >= AIRPORTBASE && t < COALBASE) return as_bldg(raw, 'A');
+  if (t >= COALBASE && t <= LASTPOWERPLANT) return as_bldg(raw, 'E');
+  if (t >= FIRESTBASE && t < POLICESTBASE) return as_bldg(raw, 'F');
+  if (t >= POLICESTBASE && t < STADIUMBASE) return as_bldg(raw, 'P');
+  if (t >= FOOTBALLGAME1 && t <= FOOTBALLGAME2)		/* game day (anim) */
+    return ((chtype)'S') | A_REVERSE;
+  if (t >= STADIUMBASE && t < NUCLEARBASE) return as_bldg(raw, 'S');
+  if (t >= NUCLEARBASE && t <= LASTZONE) return as_bldg(raw, 'N');
+
+  if ((t >= HBRDG0 && t <= HBRDG3) || (t >= VBRDG0 && t <= VBRDG3))
+    return ((chtype)'=') | A_BOLD;			/* open drawbridge */
+  if (t >= FOUNTAIN && t <= INDBASE2) return (chtype)'"';
+  if (t >= TINYEXP && t <= LASTTINYEXP)
+    return ((chtype)'*') | A_BOLD | A_REVERSE;		/* explosion */
+  if ((t >= SMOKEBASE && t < TINYEXP) ||
+      (t >= COALSMOKE1 && t <= COALSMOKE4 + 3))
+    return ((chtype)'*') | A_BOLD;
+
+  return (chtype)'*';					/* unknown tile */
+}
+
+static void
+as_tile(int sy, int sx, int mx, int my)
+{
+  mvaddch(sy, sx, as_cell(mx, my));
+}
+
+/* same glyphs as the default mode's sprites, colors dropped */
+static void
+as_sprite(int sy, int sx, int type)
+{
+  chtype c;
+
+  switch (type) {
+  case TRA: c = ((chtype)'e') | A_BOLD; break;		/* train      */
+  case COP: c = ((chtype)'H') | A_BOLD; break;		/* helicopter */
+  case AIR: c = ((chtype)'>') | A_BOLD; break;		/* airplane   */
+  case SHI: c = ((chtype)'b') | A_BOLD; break;		/* ship       */
+  case GOD: c = ((chtype)'M') | A_BOLD | A_REVERSE; break;  /* monster   */
+  case TOR: c = ((chtype)'@') | A_BOLD | A_REVERSE; break;  /* tornado   */
+  case EXP: c = ((chtype)'*') | A_BOLD | A_REVERSE; break;  /* explosion */
+  case BUS: c = ((chtype)'u') | A_BOLD; break;
+  default:  c = (chtype)'?'; break;
+  }
+  mvaddch(sy, sx, c);
+}
+
+/* XOR, not OR: the cursor must stay visible on already-reversed tiles
+ * (rails, buildings), where OR-ing A_REVERSE would be a no-op.  The XOR of
+ * a zone center (letter|BOLD|REVERSE) is letter|BOLD -- identical to the
+ * dense lot cells around it -- so underline too: no tile uses underline,
+ * making the cursor cell unique everywhere (and it is a native vt100 attr). */
+static void
+as_cursor(int sy, int sx, int mx, int my)
+{
+  mvaddch(sy, sx, (as_cell(mx, my) ^ A_REVERSE) | A_UNDERLINE);
+}
+
 /* ======================== mode registry ================================== */
 
 static struct GfxOps GfxDefault =
-  { "default", 1, 0, NULL,      df_tile,  df_sprite,  df_cursor  };
+  { "default", 1, 0, 0, NULL,      df_tile,  df_sprite,  df_cursor  };
 static struct GfxOps GfxUnicode =
-  { "unicode", 2, 1, uni_avail, uni_tile, uni_sprite, uni_cursor };
+  { "unicode", 2, 1, 0, uni_avail, uni_tile, uni_sprite, uni_cursor };
+static struct GfxOps GfxAscii =
+  { "ascii",   1, 0, 1, NULL,      as_tile,  as_sprite,  as_cursor  };
 
-/* future: braille microtiles, aalib shading, 7-bit ASCII, B&W */
-static struct GfxOps *modes[] = { &GfxDefault, &GfxUnicode };
+/* future: braille microtiles, aalib shading */
+static struct GfxOps *modes[] = { &GfxDefault, &GfxUnicode, &GfxAscii };
 #define NMODES ((int)(sizeof(modes) / sizeof(modes[0])))
 
 struct GfxOps *Gfx = &GfxDefault;
@@ -394,6 +558,8 @@ nc_gfx_set(char *name)
 
   if (!name) return 0;
   if (!strcmp(name, "emoji")) name = "unicode";
+  if (!strcmp(name, "vt100") || !strcmp(name, "mono") ||
+      !strcmp(name, "bw") || !strcmp(name, "7bit")) name = "ascii";
   for (i = 0; i < NMODES; i++) {
     if (strcmp(modes[i]->name, name)) continue;
     if (modes[i]->avail && !modes[i]->avail()) return 0;
@@ -417,5 +583,6 @@ nc_gfx_cycle(void)
     Gfx = m;
     break;
   }
+  nc_colors_init();	/* colors start lazily on first switch to a color mode */
   return Gfx->name;
 }

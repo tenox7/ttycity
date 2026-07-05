@@ -239,13 +239,23 @@ nc_cell(int mapx, int mapy)
   return ((chtype)ch) | NC_CP(fg, bg) | (bold ? A_BOLD : 0);
 }
 
+/* Colors are started lazily: in a mono gfx mode (-gfx ascii) start_color()
+ * is never called, so curses emits no color sequences at all and the
+ * terminal keeps its own colors -- once started, pair 0 would force
+ * white-on-black onto everything.  nc_gfx_cycle() calls this again when
+ * switching modes, which starts colors the first time a color mode is used;
+ * re-running it is a harmless no-op. */
 void
 nc_colors_init(void)
 {
   int fg, bg, n;
 
+  if (Gfx->mono) return;
   if (!has_colors()) return;
   start_color();
+#ifdef NCURSES_VERSION
+  use_default_colors();		/* keep pair 0 = the terminal's own colors */
+#endif
   for (fg = 0; fg < 8; fg++) {
     for (bg = 0; bg < 8; bg++) {
       n = NC_PAIR(fg, bg);
@@ -488,7 +498,7 @@ nc_draw_editor(SimView *view)
       t0 = (EdH - tl) * ViewPanY / (WORLD_Y - EdH);
     }
     for (sy = 0; sy < EdH; sy++) {
-      attrset((sy >= t0 && sy < t0 + tl) ? NC_CP(COLOR_BLACK, COLOR_WHITE)
+      attrset((sy >= t0 && sy < t0 + tl) ? NC_MSEL(NC_CP(COLOR_BLACK, COLOR_WHITE))
 					 : NC_CP(COLOR_WHITE, COLOR_BLACK));
       mvaddch(EdTop + sy, sx, ' ');
     }

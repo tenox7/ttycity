@@ -13,7 +13,8 @@ therefore self-contained and needs no external files at runtime:
 ./ttycity                       # start a new random city
 ./ttycity ../cities/bruce.cty   # load a city file from disk
 ./ttycity -theme grass          # tan (default) | grass | dark land color
-./ttycity -gfx unicode         # emoji / unicode graphics mode (see below)
+./ttycity -gfx unicode          # emoji / unicode graphics mode (see below)
+./ttycity -gfx ascii            # 7-bit monochrome vt100 mode (see below)
 ```
 
 The built-in scenarios and example cities are on the in-game *New Game* and
@@ -34,7 +35,7 @@ optional overview map on the right, and a status line at the bottom.
 | Shift + letter  | pick a tool (`R`es `C`om `I`nd, r`O`ad rai`L` `W`ire, `B`ulldoze `Q`uery, `F`ire police-`D`… see palette) |
 | Enter           | build the current tool at the cursor |
 | `m`             | cycle the overview map / data overlays |
-| `u`             | cycle the graphics mode (default / unicode) |
+| `u`             | cycle the graphics mode (default / unicode / ascii) |
 | space           | pause · `0`–`3` set speed |
 | Esc / F10       | open the menu bar |
 | `g`             | new random city · `q` quit |
@@ -66,10 +67,18 @@ The interface is resizable and works down to 80×24.
   Needs a UTF-8 locale and a wide-char-capable
   curses: the stock macOS `-lcurses` works out of the box; on Linux build
   with `make CURSES=-lncursesw`.
+- **ascii** (aliases `vt100`, `mono`, `bw`, `7bit`) — the other direction:
+  strict 7-bit ASCII and **no color output at all**, just bold and reverse
+  video, the way a vt100 would show it.  Curses colors are never even
+  started, so the terminal keeps its own default colors untouched.  Poor
+  man's line drawing (`- | +` roads, `=` rails on a reverse-video ballast
+  strip, bold wires), zone letters that fill their lots in as they grow,
+  civic buildings as reverse-video blocks with a bold letter at the center;
+  menu/dialog selection bars fall back to reverse video.  Picked
+  automatically when the terminal reports no color support.
 
-Planned (see `TODO.md`): braille 2×4 micro-tiles, aalib-style shading,
-pure 7-bit ASCII, and B&W modes — each is one new `GfxOps` entry in
-`nc_gfx.c`.
+Planned (see `TODO.md`): braille 2×4 micro-tiles and aalib-style shading —
+each is one new `GfxOps` entry in `nc_gfx.c`.
 
 ## Legal
 

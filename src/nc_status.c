@@ -64,8 +64,8 @@ nc_draw_status(SimView *view)
       sl = EdW * vt / WORLD_X;
       if (sl < 1) sl = 1;
       sx = EdLeft + (EdW - sl) * ViewPanX / (WORLD_X - vt);
-      mvchgat(rows - 1, sx, sl, A_NORMAL, NC_PAIR(COLOR_BLACK, COLOR_WHITE),
-	      NULL);
+      mvchgat(rows - 1, sx, sl, NC_MONO ? A_REVERSE : A_NORMAL,
+	      NC_MONO ? 0 : NC_PAIR(COLOR_BLACK, COLOR_WHITE), NULL);
     }
   }
 }

@@ -71,7 +71,7 @@ fund_row(int row, int col, int w, char *label, long want, float pct, int sel)
 
   dollar((long)(want * pct), got);
   dollar(want, wnt);
-  attrset(sel ? (NC_CP(COLOR_BLACK, COLOR_CYAN) | A_BOLD) : NC_CP(COLOR_WHITE, COLOR_BLUE));
+  attrset(sel ? NC_MSEL(NC_CP(COLOR_BLACK, COLOR_CYAN) | A_BOLD) : NC_CP(COLOR_WHITE, COLOR_BLUE));
   move(row, col);
   printw(" %-7s [", label);
   for (i = 0; i < 10; i++) addch(i < n ? '=' : ' ');
@@ -111,7 +111,7 @@ nc_budget_modal(void)
       mvaddnstr(top, left + 2, " CITY BUDGET ", w - 4);
     }
 
-    attrset(sel == 0 ? (NC_CP(COLOR_BLACK, COLOR_CYAN) | A_BOLD) : NC_CP(COLOR_WHITE, COLOR_BLUE));
+    attrset(sel == 0 ? NC_MSEL(NC_CP(COLOR_BLACK, COLOR_CYAN) | A_BOLD) : NC_CP(COLOR_WHITE, COLOR_BLUE));
     sprintf(buf, " Tax rate: %2d%%", CityTax);
     mvaddnstr(top + 2, left + 2, buf, w - 4);
 
@@ -441,7 +441,7 @@ nc_load_modal(void)
       FBEnt *en = &ents[off + i];
       char line[300];
       int selrow = (off + i == sel);
-      attrset(selrow ? (NC_CP(COLOR_BLACK, COLOR_CYAN) | A_BOLD)
+      attrset(selrow ? NC_MSEL(NC_CP(COLOR_BLACK, COLOR_CYAN) | A_BOLD)
 		     : (en->isdir ? (NC_CP(COLOR_WHITE, COLOR_BLUE) | A_BOLD)
 				  : NC_CP(COLOR_WHITE, COLOR_BLUE)));
       sprintf(line, " %s%s", en->name, en->isdir ? "/" : "");
@@ -558,7 +558,7 @@ nc_newgame_modal(void)
     }
     mvaddnstr(top, left + 2, " NEW GAME ", w - 4);
     for (i = 0; i < NG_N; i++) {
-      attrset(i == sel ? (NC_CP(COLOR_BLACK, COLOR_CYAN) | A_BOLD)
+      attrset(i == sel ? NC_MSEL(NC_CP(COLOR_BLACK, COLOR_CYAN) | A_BOLD)
 			: NC_CP(COLOR_WHITE, COLOR_BLUE));
       mvaddch(top + 2 + i, left + 2, ' ');
       mvaddnstr(top + 2 + i, left + 3, newgame_items[i], w - 5);
@@ -644,7 +644,7 @@ nc_load_embedded_modal(void)
       const char *nm = EmbeddedCityName(off + i);
       char line[300];
       int selrow = (off + i == sel);
-      attrset(selrow ? (NC_CP(COLOR_BLACK, COLOR_CYAN) | A_BOLD)
+      attrset(selrow ? NC_MSEL(NC_CP(COLOR_BLACK, COLOR_CYAN) | A_BOLD)
 		     : NC_CP(COLOR_WHITE, COLOR_BLUE));
       sprintf(line, " %s", nm ? nm : "");
       { int x; move(top + 2 + i, left + 1); for (x = 0; x < w - 2; x++) addch(' '); }
