@@ -4,8 +4,8 @@
  * how to draw a tile / sprite / cursor there.  nc_render.c owns layout and
  * panning and dispatches through Gfx, so modes never deal with scrolling.
  *
- *   default  1 col/tile, plain ASCII + ACS + 8 colors (nc_cell, nc_render.c).
- *            Works on any curses ever made -- this is the old-Unix mode.
+ *   standard 1 col/tile, plain ASCII + ACS + 8 colors (nc_cell, nc_render.c).
+ *            Works on any curses ever made -- this is the default mode.
  *   unicode  2 cols/tile, UTF-8: emoji buildings/vehicles, box-drawing roads
  *            and rails, quadrant-block density fills, braille terrain
  *            texture, legacy-computing checker.  Needs a UTF-8 locale and a
@@ -36,7 +36,7 @@
 #include <stdlib.h>			/* MB_CUR_MAX */
 #include "nc.h"
 
-/* ======================== default mode (1 col/tile) ====================== */
+/* ======================== standard mode (1 col/tile) ===================== */
 
 static void
 df_tile(int sy, int sx, int mx, int my)
@@ -555,7 +555,7 @@ as_cursor(int sy, int sx, int mx, int my)
 /* ======================== mode registry ================================== */
 
 static struct GfxOps GfxDefault =
-  { "default", 1, 0, 0, NULL,      df_tile,  df_sprite,  df_cursor  };
+  { "standard", 1, 0, 0, NULL,     df_tile,  df_sprite,  df_cursor  };
 static struct GfxOps GfxUnicode =
   { "unicode", 2, 1, 0, uni_avail, uni_tile, uni_sprite, uni_cursor };
 static struct GfxOps GfxAscii =
@@ -574,6 +574,7 @@ nc_gfx_set(char *name)
   int i;
 
   if (!name) return 0;
+  if (!strcmp(name, "default") || !strcmp(name, "color")) name = "standard";
   if (!strcmp(name, "emoji")) name = "unicode";
   if (!strcmp(name, "vt100") || !strcmp(name, "mono") ||
       !strcmp(name, "bw") || !strcmp(name, "7bit")) name = "ascii";

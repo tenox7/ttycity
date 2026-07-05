@@ -10,6 +10,7 @@ All assets (strings, scenarios, example cities) are baked into the binary — no
 ./ttycity                       # new random city
 ./ttycity ../cities/bruce.cty   # load a city file
 ./ttycity -theme grass          # tan (default) | grass | dark
+./ttycity -gfx standard         # classic curses look, 8 colors (default)
 ./ttycity -gfx unicode          # emoji / unicode graphics
 ./ttycity -gfx ascii            # 7-bit monochrome vt100
 ./ttycity -gfx aa               # aalib rendering (optional build)
@@ -34,7 +35,7 @@ Mouse supported: click to build, right-drag to pan, wheel scrolls; menus, palett
 
 Select with `-gfx <name>`, the `u` key, or *Options → Graphics*:
 
-- **default** — one char per tile, ASCII + ACS + 8 colors; runs on any curses.
+- **standard** (`color`) — one char per tile, ASCII + ACS + 8 colors; runs on any curses. The default.
 - **unicode** — two columns per tile: emoji buildings/vehicles, box-drawing roads, braille terrain. Needs UTF-8 and wide-char curses (`make CURSES=-lncursesw` on Linux).
 - **ascii** (`vt100`, `mono`) — strict 7-bit, no color, bold/reverse only.
 - **aa** (`aalib`) — tiles rendered through [aalib](https://aa-project.sourceforge.net/aalib/), in color. Off by default: build with `make aalib` (add `AA_PREFIX=/opt/homebrew` if needed).
