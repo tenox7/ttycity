@@ -16,9 +16,12 @@
  *            mono flag makes NC_CP (nc.h) yield pair 0 everywhere, so the
  *            whole program draws in the terminal's own default colors;
  *            color pairs are never touched or remapped.
+ *   aa       2 cols/tile, rendered through the real aalib, in color.  Lives
+ *            in nc_aa.c and is compiled in only by `make aalib` (libaa is
+ *            rare); otherwise its avail() fails and the mode is skipped.
  *
- * Future slots (see TODO.md): braille 2x4-dot microtiles, aalib-style
- * shading.  Add a GfxOps and list it in modes[].
+ * Future slots: braille 2x4-dot microtiles.  Add a GfxOps and list it in
+ * modes[].
  *
  * Portability: this file stays C89 and uses no wide-char APIs -- the UTF-8
  * glyphs are plain byte strings pushed through addstr(), so it still COMPILES
@@ -544,8 +547,8 @@ static struct GfxOps GfxUnicode =
 static struct GfxOps GfxAscii =
   { "ascii",   1, 0, 1, NULL,      as_tile,  as_sprite,  as_cursor  };
 
-/* future: braille microtiles, aalib shading */
-static struct GfxOps *modes[] = { &GfxDefault, &GfxUnicode, &GfxAscii };
+/* future: braille microtiles */
+static struct GfxOps *modes[] = { &GfxDefault, &GfxUnicode, &GfxAscii, &GfxAA };
 #define NMODES ((int)(sizeof(modes) / sizeof(modes[0])))
 
 struct GfxOps *Gfx = &GfxDefault;
@@ -560,6 +563,7 @@ nc_gfx_set(char *name)
   if (!strcmp(name, "emoji")) name = "unicode";
   if (!strcmp(name, "vt100") || !strcmp(name, "mono") ||
       !strcmp(name, "bw") || !strcmp(name, "7bit")) name = "ascii";
+  if (!strcmp(name, "aalib") || !strcmp(name, "aa-lib")) name = "aa";
   for (i = 0; i < NMODES; i++) {
     if (strcmp(modes[i]->name, name)) continue;
     if (modes[i]->avail && !modes[i]->avail()) return 0;

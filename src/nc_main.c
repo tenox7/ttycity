@@ -371,7 +371,7 @@ main(int argc, char *argv[])
     } else if (!strcmp(argv[i], "-theme") && i + 1 < argc) {
       nc_set_theme(argv[++i]);			/* tan | grass | dark */
     } else if (!strcmp(argv[i], "-gfx") && i + 1 < argc) {
-      gfxname = argv[++i];			/* default | unicode | ascii ('u' cycles) */
+      gfxname = argv[++i];			/* default | unicode | ascii | aa */
     } else if (argv[i][0] == '-') {
       /* other options handled in later phases; ignore for now */
     } else if (!loadfile && (strstr(argv[i], ".cty") || strstr(argv[i], ".scn"))) {
@@ -386,8 +386,8 @@ main(int argc, char *argv[])
   if (gfxname && !nc_gfx_set(gfxname)) {
     fprintf(stderr,
 	    "ttycity: unknown or unavailable -gfx mode '%s'\n"
-	    "         (modes: default, unicode, ascii;"
-	    " unicode needs a UTF-8 locale)\n",
+	    "         (modes: default, unicode, ascii, aa; unicode needs"
+	    " a UTF-8 locale,\n         aa a `make aalib` build)\n",
 	    gfxname);
     return 1;
   }

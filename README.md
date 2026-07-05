@@ -15,6 +15,7 @@ therefore self-contained and needs no external files at runtime:
 ./ttycity -theme grass          # tan (default) | grass | dark land color
 ./ttycity -gfx unicode          # emoji / unicode graphics mode (see below)
 ./ttycity -gfx ascii            # 7-bit monochrome vt100 mode (see below)
+./ttycity -gfx aa               # aalib rendering, in color (optional; see below)
 ```
 
 The built-in scenarios and example cities are on the in-game *New Game* and
@@ -35,7 +36,7 @@ optional overview map on the right, and a status line at the bottom.
 | Shift + letter  | pick a tool (`R`es `C`om `I`nd, r`O`ad rai`L` `W`ire, `B`ulldoze `Q`uery, `F`ire police-`D`… see palette) |
 | Enter           | build the current tool at the cursor |
 | `m`             | cycle the overview map / data overlays |
-| `u`             | cycle the graphics mode (default / unicode / ascii) |
+| `u`             | cycle the graphics mode (default / unicode / ascii / aa) |
 | space           | pause · `0`–`3` set speed |
 | Esc / F10       | open the menu bar |
 | `g`             | new random city · `q` quit |
@@ -76,9 +77,19 @@ The interface is resizable and works down to 80×24.
   civic buildings as reverse-video blocks with a bold letter at the center;
   menu/dialog selection bars fall back to reverse video.  Picked
   automatically when the terminal reports no color support.
+- **aa** (alias `aalib`) — rendered through the real
+  [aalib](https://aa-project.sourceforge.net/aalib/), in color.  Every tile
+  is a tiny 4×2-pixel grayscale image pushed through aalib's renderer, which
+  picks the printable-ASCII glyph for each character cell; water shimmers,
+  suburbs are `db` cottage rows, zones fill in with that unmistakable
+  bb-demo letter-soup texture and grow bright towers.  Unlike stock aalib
+  the picture is colored — tiles keep the palette of the other modes, and
+  aalib's brightness attribute maps to bold.  libaa is a rare bird, so this
+  mode is **off by default**: build it in with `make aalib` (add
+  `AA_PREFIX=/opt/homebrew` or wherever libaa lives); a plain build refuses
+  `-gfx aa` and the `u` key skips the mode.
 
-Planned (see `TODO.md`): braille 2×4 micro-tiles and aalib-style shading —
-each is one new `GfxOps` entry in `nc_gfx.c`.
+Planned: braille 2×4 micro-tiles — one new `GfxOps` entry in `nc_gfx.c`.
 
 ## Legal
 
