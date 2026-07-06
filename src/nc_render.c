@@ -540,8 +540,14 @@ nc_draw_sprites(void)
   if (vt < 1) vt = 1;
   for (s = sim->sprite; s != NULL; s = s->next) {
     if (s->frame == 0) continue;		/* dead / inactive */
-    tx = (s->x + s->x_hot) >> 4;		/* pixel -> tile coords */
-    ty = (s->y + s->y_hot) >> 4;
+    if (s->type == TRA) {			/* train track logic pivots on (x+48,y),
+						 * not the hot spot (w_sprite.c DoTrainSprite) */
+      tx = (s->x + 48) >> 4;
+      ty = s->y >> 4;
+    } else {
+      tx = (s->x + s->x_hot) >> 4;		/* pixel -> tile coords */
+      ty = (s->y + s->y_hot) >> 4;
+    }
     if (tx < ViewPanX || tx >= ViewPanX + vt ||
 	ty < ViewPanY || ty >= ViewPanY + EdH)
       continue;
