@@ -110,6 +110,7 @@ void
 nc_draw_notice(void)
 {
   int rows, cols, w, h, top, left, i, len, x;
+  chtype hl, vl, ul, ur, ll, lr;
 
   if (!NoticeActive) return;
   getmaxyx(stdscr, rows, cols);
@@ -122,14 +123,35 @@ nc_draw_notice(void)
   top = rows / 3;
   left = (cols - w) / 2;
   if (left < 0) left = 0;
+  nc_popup_snap(&left, &w);
+
+  if (Gfx->mono) {	/* strict 7-bit mode: poor man's lines */
+    hl = '-'; vl = '|'; ul = ur = ll = lr = '+';
+  } else {
+    hl = ACS_HLINE; vl = ACS_VLINE;
+    ul = ACS_ULCORNER; ur = ACS_URCORNER;
+    ll = ACS_LLCORNER; lr = ACS_LRCORNER;
+  }
 
   attrset(NC_CP(COLOR_WHITE, COLOR_RED) | A_BOLD);
   for (i = 0; i < h; i++) {
     move(top + i, left);
     for (x = 0; x < w; x++) addch(' ');
   }
+  mvaddch(top, left, ul);
+  mvaddch(top, left + w - 1, ur);
+  mvaddch(top + h - 1, left, ll);
+  mvaddch(top + h - 1, left + w - 1, lr);
+  for (x = 1; x < w - 1; x++) {
+    mvaddch(top, left + x, hl);
+    mvaddch(top + h - 1, left + x, hl);
+  }
+  for (i = 1; i < h - 1; i++) {
+    mvaddch(top + i, left, vl);
+    mvaddch(top + i, left + w - 1, vl);
+  }
   mvaddnstr(top + 1, left + 2, "! NOTICE !", w - 4);
   mvaddnstr(top + 2, left + 2, NoticeText, w - 4);
-  mvaddnstr(top + h - 1, left + 2, " press any key ", w - 4);
+  mvaddnstr(top + h - 2, left + 2, " press any key ", w - 4);
   attrset(A_NORMAL);
 }

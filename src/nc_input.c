@@ -31,7 +31,7 @@ static ToolBtn toolbar[] = {
                                 { industrialState, 'I', "I",  "IN", "🏭", COLOR_YELLOW, COLOR_MAGENTA },
   /* row 1: services + query */ { fireState,       'F', "F",  "FI", "🚒", COLOR_WHITE,  COLOR_RED     },
                                 { queryState,      'Q', "?",  "QY", "🔍", COLOR_BLACK,  COLOR_WHITE   },
-                                { policeState,     'P', "P",  "PD", "🚨", COLOR_WHITE,  COLOR_RED     },
+                                { policeState,     'P', "P",  "PD", "👮", COLOR_WHITE,  COLOR_RED     },
   /* row 2: utilities        */ { wireState,       'W', "W",  "WI", "⚡",     COLOR_RED,    COLOR_WHITE   },
                                 { dozeState,       'B', "B",  "BU", "🚜", COLOR_BLACK,  COLOR_YELLOW  },
                                 { parkState,       'K', "\"", "PK", "🌳", COLOR_BLACK,  COLOR_GREEN   },
@@ -193,6 +193,7 @@ nc_draw_query(void)
   left = (cols - w) / 2;
   if (top < 0) top = 0;
   if (left < 0) left = 0;
+  nc_popup_snap(&left, &w);
 
   attrset(NC_CP(COLOR_WHITE, COLOR_BLUE) | A_BOLD);
   for (i = 0; i < h; i++) {

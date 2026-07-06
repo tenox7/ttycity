@@ -104,6 +104,7 @@ nc_budget_modal(void)
     getmaxyx(stdscr, rows, cols);
     top = (rows - h) / 2; if (top < 0) top = 0;
     left = (cols - w) / 2; if (left < 0) left = 0;
+    nc_popup_snap(&left, &w);
 
     { int r, c;
       attrset(NC_CP(COLOR_WHITE, COLOR_BLUE) | A_BOLD);
@@ -180,6 +181,7 @@ nc_eval_modal(void)
     getmaxyx(stdscr, rows, cols);
     top = (rows - h) / 2; if (top < 0) top = 0;
     left = (cols - w) / 2; if (left < 0) left = 0;
+    nc_popup_snap(&left, &w);
 
     { int r, c;
       attrset(NC_CP(COLOR_WHITE, COLOR_BLUE) | A_BOLD);
@@ -263,6 +265,7 @@ nc_graph_modal(void)
     w = cols - 6; if (w > 90) w = 90; if (w < 30) w = 30;
     top = (rows - h) / 2; if (top < 0) top = 0;
     left = (cols - w) / 2; if (left < 0) left = 0;
+    nc_popup_snap(&left, &w);
     width = w - 8; if (width > 120) width = 120;
     off = range ? 120 : 0;
 
@@ -308,6 +311,7 @@ nc_prompt(char *title, char *buf, int buflen)
     getmaxyx(stdscr, rows, cols);
     top = rows / 2 - 2; if (top < 0) top = 0;
     left = (cols - w) / 2; if (left < 0) left = 0;
+    nc_popup_snap(&left, &w);
 
     { int r, c;
       attrset(NC_CP(COLOR_WHITE, COLOR_BLUE) | A_BOLD);
@@ -422,6 +426,7 @@ nc_load_modal(void)
     listh = h - 4;
     top = (rows - h) / 2; if (top < 0) top = 0;
     left = (cols - w) / 2; if (left < 0) left = 0;
+    nc_popup_snap(&left, &w);
 
     if (sel < 0) sel = 0;
     if (sel >= n) sel = n - 1;
@@ -551,6 +556,7 @@ nc_newgame_modal(void)
     getmaxyx(stdscr, rows, cols);
     top = (rows - h) / 2; if (top < 0) top = 0;
     left = (cols - w) / 2; if (left < 0) left = 0;
+    nc_popup_snap(&left, &w);
 
     { int r, c;
       attrset(NC_CP(COLOR_WHITE, COLOR_BLUE) | A_BOLD);
@@ -628,6 +634,7 @@ nc_load_embedded_modal(void)
     listh = h - 4;
     top = (rows - h) / 2; if (top < 0) top = 0;
     left = (cols - w) / 2; if (left < 0) left = 0;
+    nc_popup_snap(&left, &w);
 
     if (sel < 0) sel = 0;
     if (sel >= n) sel = n - 1;

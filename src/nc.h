@@ -50,6 +50,7 @@ extern struct GfxOps GfxAA;			/* nc_aa.c: aalib-style shading */
 int   nc_gfx_set(char *name);			/* -gfx <name>; 0 = unknown/unavail */
 void  nc_gfx_auto(void);			/* no -gfx: pick from TERM/locale */
 char *nc_gfx_cycle(void);			/* 'u' key / Options menu */
+void  nc_popup_snap(int *x, int *w);		/* align popup to the tile grid */
 int   nc_zone_den(int t, int builtBase, int builtHi, int dmod, int *vac);
 
 /* --- nc_render.c --------------------------------------------------------- */

@@ -169,6 +169,23 @@ do_action(int id)
   }
 }
 
+/* dropdown geometry, shared by draw and mouse hit-testing */
+static void
+menu_geom(int mi, int *mx, int *w)
+{
+  int i, l;
+
+  *mx = 1;
+  for (i = 0; i < mi; i++) *mx += (int)strlen(menus[i].title) + 3;
+  *w = 12;
+  for (i = 0; i < menus[mi].n; i++) {
+    l = (int)strlen(menus[mi].items[i].label) + 5;	/* " [x] " + label */
+    if (l > *w) *w = l;
+  }
+  nc_popup_snap(mx, w);
+  while (*mx + *w > COLS && *mx - 2 >= 0) *mx -= 2;	/* keep on screen */
+}
+
 static int
 next_item(int m, int sel, int dir)
 {
@@ -242,14 +259,7 @@ nc_menu_mouse(int y, int x)
   if (MenuOpen < 0) return 0;
 
   m = &menus[MenuOpen];
-  mx = 1;
-  for (i = 0; i < MenuOpen; i++) mx += (int)strlen(menus[i].title) + 3;
-  w = 0;
-  for (j = 0; j < m->n; j++) {
-    int l = (int)strlen(m->items[j].label) + 4;
-    if (l > w) w = l;
-  }
-  if (w < 12) w = 12;
+  menu_geom(MenuOpen, &mx, &w);
 
   j = y - 1;				/* dropdown rows start under the bar */
   if (j >= 0 && j < m->n && x >= mx && x < mx + w) {
@@ -287,13 +297,8 @@ nc_menu_draw(int cols)
   /* open dropdown */
   if (MenuOpen >= 0) {
     Menu *m = &menus[MenuOpen];
-    int w = 0, mx = 1, j;
-    for (i = 0; i < MenuOpen; i++) mx += (int)strlen(menus[i].title) + 3;
-    for (j = 0; j < m->n; j++) {
-      int l = (int)strlen(m->items[j].label) + 4;
-      if (l > w) w = l;
-    }
-    if (w < 12) w = 12;
+    int w, mx, j;
+    menu_geom(MenuOpen, &mx, &w);
     for (j = 0; j < m->n; j++) {
       char line[64];
       int st, sel = (j == MenuSel);
@@ -305,10 +310,10 @@ nc_menu_draw(int cols)
 	continue;
       }
       st = toggle_state(it->id);
-      if (st >= 0)
-	sprintf(line, " [%c] %-*s", st ? 'x' : ' ', w - 6, it->label);
+      if (st >= 0)	/* both forms fill the full snapped width */
+	sprintf(line, " [%c] %-*s", st ? 'x' : ' ', w - 5, it->label);
       else
-	sprintf(line, " %-*s", w - 2, it->label);
+	sprintf(line, " %-*s", w - 1, it->label);
       mvaddnstr(1 + j, mx, line, w);
     }
     attrset(A_NORMAL);

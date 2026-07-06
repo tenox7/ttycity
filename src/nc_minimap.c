@@ -72,7 +72,7 @@ static struct { int state; char *label; char *emoji; } modes[] = {
   { LVMAP, "Land Value",   "💰" },
   { PRMAP, "Power Grid",   "⚡" },
   { FIMAP, "Fire Cover",   "🚒" },
-  { POMAP, "Police Cover", "🚨" }
+  { POMAP, "Police Cover", "👮" }
 };
 #define NMODES ((int)(sizeof(modes) / sizeof(modes[0])))
 
@@ -236,6 +236,11 @@ draw_ascii(int top, int left, int w, int h)
 
   if (NC_MONO) attrset(A_NORMAL);
   for (sy = 0; sy < ih; sy++) {
+    /* own the side columns too: as a fallback overlay this box sits on live
+     * tiles, and a row that skips them leaves half-covered wide glyphs */
+    attrset(A_NORMAL);
+    mvaddch(top + 1 + sy, left, ' ');
+    mvaddch(top + 1 + sy, left + w - 1, ' ');
     ty = sy * WORLD_Y / ih;
     if (ty >= WORLD_Y) ty = WORLD_Y - 1;
     for (sx = 0; sx < iw; sx++) {
@@ -453,7 +458,8 @@ u_legend(int state, int y, int left, int w)
   LegX = left + 2;
   switch (state) {
   case ALMAP:
-    leg("🌲", 2, COLOR_WHITE, 0); leg("Park ", 5, COLOR_GREEN, A_BOLD);
+    /* even label widths keep every emoji on the tile-grid parity */
+    leg("🌲", 2, COLOR_WHITE, 0); leg("Park  ", 6, COLOR_GREEN, A_BOLD);
     leg("🌊", 2, COLOR_WHITE, 0); leg("Water ", 6, COLOR_CYAN, 0);
     leg("🔥", 2, COLOR_WHITE, 0); leg("Fire", 4, COLOR_RED, A_BOLD);
     break;
@@ -527,6 +533,7 @@ draw_uni(int top, int left, int w, int h)
   mvaddstr(top, left + 2, buf);
 
   CloseY = top; CloseX = left + w - 6; CloseW = 4;
+  CloseX += ((CloseX + 1) ^ EdLeft) & 1;	/* ❌ on the tile-grid parity */
   mvaddstr(CloseY, CloseX, "┫❌┣");
 
   /* the map grid */
@@ -582,6 +589,9 @@ nc_draw_minimap(void)
     maxw = Gfx->emojiui ? (WORLD_X / 2 + 2) : 44;
     if (pw > maxw) pw = maxw;
     if (pw < 22) pw = 22;
+    /* panel edge on the tile-grid parity, so later popups that overlap the
+     * panel never bisect its emoji chrome (title, close, legend) */
+    if (Gfx->tilew >= 2 && ((cols - pw - EdLeft) & 1)) pw++;
     MinimapW = pw;
     ph = rows - 2;			/* menu (1) + status line (1) */
     draw_grid(1, cols - pw, pw, ph);
@@ -593,14 +603,16 @@ nc_draw_minimap(void)
 void
 nc_draw_minimap_late(void)
 {
-  int rows, cols, pw, ph;
+  int rows, cols, px, pw, ph;
 
   if (!LatePending) return;
 
   /* narrow terminal: centered overlay over the editor */
   getmaxyx(stdscr, rows, cols);
+  px = 1;
   pw = cols - 2;
   ph = rows - 5;
   if (ph < 5) ph = 5;
-  draw_grid(1, 1, pw, ph);
+  nc_popup_snap(&px, &pw);
+  draw_grid(1, px, pw, ph);
 }

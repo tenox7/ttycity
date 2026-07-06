@@ -376,8 +376,11 @@ nc_draw_toolbar(SimView *view)
 
       if (view->tool_state == st) attr |= A_REVERSE | A_BOLD;	/* selected tool */
       if (Gfx->emojiui) {		/* bare emoji faces; A_REVERSE = selected */
+	int ex = lpad + c * cellw;
+	ex += (ex ^ tw) & 1;	/* tile-grid parity (tw==EdLeft), so a menu
+				 * dropdown edge never bisects an emoji */
 	attrset(attr);
-	mvaddstr(top + 1 + r, lpad + c * cellw, nc_toolbar_emoji(idx));
+	mvaddstr(top + 1 + r, ex, nc_toolbar_emoji(idx));
 	continue;
       }
       if (expanded) sprintf(cell, "[%s]", nc_toolbar_lcode(idx));
