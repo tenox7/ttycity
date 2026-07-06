@@ -2,6 +2,8 @@
 
 A port of [Micropolis Activity](https://github.com/SimHacker/micropolis/tree/master/micropolis-activity) to the terminal using [ncurses](https://en.wikipedia.org/wiki/Ncurses). The original simulation engine is preserved as-is.
 
+![ttycity](ttycity.png)
+
 ## Running
 
 All assets (scenarios, cities) are baked into the binary — no external files needed.
