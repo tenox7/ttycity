@@ -62,6 +62,46 @@ dollar(long v, char *out)
   makeDollarDecimalStr(num, out);
 }
 
+/* box border in the dialog's own colors; same style as the notice popup */
+static void
+dlg_frame(int top, int left, int h, int w, chtype attr)
+{
+  chtype hl, vl, ul, ur, ll, lr;
+  int i;
+
+  if (Gfx->mono) {	/* strict 7-bit mode: poor man's lines */
+    hl = '-'; vl = '|'; ul = ur = ll = lr = '+';
+  } else {
+    hl = ACS_HLINE; vl = ACS_VLINE;
+    ul = ACS_ULCORNER; ur = ACS_URCORNER;
+    ll = ACS_LLCORNER; lr = ACS_LRCORNER;
+  }
+  attrset(attr);
+  for (i = 1; i < w - 1; i++) {
+    mvaddch(top, left + i, hl);
+    mvaddch(top + h - 1, left + i, hl);
+  }
+  for (i = 1; i < h - 1; i++) {
+    mvaddch(top + i, left, vl);
+    mvaddch(top + i, left + w - 1, vl);
+  }
+  mvaddch(top, left, ul);
+  mvaddch(top, left + w - 1, ur);
+  mvaddch(top + h - 1, left, ll);
+  mvaddch(top + h - 1, left + w - 1, lr);
+}
+
+/* the [X] close button on a dialog's top border; returns 1 when (y,x) hits it */
+#define DLG_X_HIT(y, x, top, left, w) \
+  ((y) == (top) && (x) >= (left) + (w) - 5 && (x) < (left) + (w))
+
+static void
+dlg_close_button(int top, int left, int w)
+{
+  attrset(NC_MSEL(NC_CP(COLOR_WHITE, COLOR_RED) | A_BOLD));
+  mvaddstr(top, left + w - 4, "[X]");
+}
+
 /* one funding row: label, want (100%), got (funded), percent, selected */
 static void
 fund_row(int row, int col, int w, char *label, long want, float pct, int sel)
@@ -109,8 +149,11 @@ nc_budget_modal(void)
     { int r, c;
       attrset(NC_CP(COLOR_WHITE, COLOR_BLUE) | A_BOLD);
       for (r = 0; r < h; r++) { move(top + r, left); for (c = 0; c < w; c++) addch(' '); }
-      mvaddnstr(top, left + 2, " CITY BUDGET ", w - 4);
     }
+    dlg_frame(top, left, h, w, NC_CP(COLOR_WHITE, COLOR_BLUE) | A_BOLD);
+    attrset(NC_CP(COLOR_WHITE, COLOR_BLUE) | A_BOLD);
+    mvaddnstr(top, left + 2, " CITY BUDGET ", w - 4);
+    dlg_close_button(top, left, w);
 
     attrset(sel == 0 ? NC_MSEL(NC_CP(COLOR_BLACK, COLOR_CYAN) | A_BOLD) : NC_CP(COLOR_WHITE, COLOR_BLUE));
     sprintf(buf, " Tax rate: %2d%%", CityTax);
@@ -133,7 +176,7 @@ nc_budget_modal(void)
     mvaddnstr(top + 9, left + 2, buf, w - 4);
 
     attrset(NC_CP(COLOR_YELLOW, COLOR_BLUE) | A_BOLD);
-    mvaddnstr(top + h - 1, left + 2,
+    mvaddnstr(top + h - 2, left + 2,
 	      " up/down select  left/right adjust  Enter=OK ", w - 4);
     attrset(A_NORMAL);
     refresh();
@@ -141,6 +184,24 @@ nc_budget_modal(void)
     switch (getch()) {
     case ERR: break;
     case '`': nc_screenshot("/tmp/ttycity_shot.txt"); break;
+#if defined(KEY_MOUSE) && defined(NCURSES_MOUSE_VERSION)
+    case KEY_MOUSE:
+      { MEVENT e;
+	if (getmouse(&e) == ERR) break;
+	if (e.bstate & BUTTON4_PRESSED) { sel = (sel + 3) % 4; break; }
+#if NCURSES_MOUSE_VERSION > 1
+	if (e.bstate & BUTTON5_PRESSED) { sel = (sel + 1) % 4; break; }
+#endif
+	if (!(e.bstate & (BUTTON1_PRESSED | BUTTON1_CLICKED | BUTTON1_DOUBLE_CLICKED)))
+	  break;
+	if (DLG_X_HIT(e.y, e.x, top, left, w)) { done = 1; break; }
+	if (e.x < left || e.x >= left + w) break;
+	if (e.y == top + 2) sel = 0;			/* tax row */
+	else if (e.y >= top + 5 && e.y <= top + 7)	/* funding rows */
+	  sel = e.y - top - 4;
+      }
+      break;
+#endif
     case KEY_UP: case 'k':   sel = (sel + 3) % 4; break;
     case KEY_DOWN: case 'j': sel = (sel + 1) % 4; break;
     case KEY_LEFT: case 'h': case '-':
@@ -604,7 +665,7 @@ nc_newgame_modal(void)
       }
       EditorView->tool_state = residentialState;
       CursorX = WORLD_X / 2; CursorY = WORLD_Y / 2;
-      setSpeed(3);
+      setSpeed(1);
       done = 1;
     }
     }

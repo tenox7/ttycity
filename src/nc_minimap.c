@@ -349,7 +349,7 @@ u_base(int y, int x, int tx, int ty)
   if (t >= COALBASE && t <= LASTPOWERPLANT) { ucell(y, x, "▓", COLOR_YELLOW, COLOR_RED, A_BOLD); return; }
   if (t >= FIRESTBASE && t < POLICESTBASE) { ucell(y, x, "▒", COLOR_WHITE, COLOR_RED, 0); return; }
   if (t >= POLICESTBASE && t < STADIUMBASE) { ucell(y, x, "▒", COLOR_WHITE, COLOR_BLUE, 0); return; }
-  if (t >= FOOTBALLGAME1 && t <= FOOTBALLGAME2) { ucell(y, x, "▒", COLOR_BLACK, COLOR_WHITE, 0); return; }
+  if (t >= FOOTBALLGAME1 && t <= FOOTBALLGAME2 + 7) { ucell(y, x, "▒", COLOR_BLACK, COLOR_WHITE, 0); return; }
   if (t >= STADIUMBASE && t < NUCLEARBASE) { ucell(y, x, "▒", COLOR_BLACK, COLOR_WHITE, 0); return; }
   if (t >= NUCLEARBASE && t <= LASTZONE) { ucell(y, x, "☢", COLOR_YELLOW, COLOR_GREEN, A_BOLD); return; }
 

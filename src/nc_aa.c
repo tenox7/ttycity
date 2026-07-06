@@ -361,7 +361,7 @@ aa_tile_at(int sy, int sx, int mx, int my, int xattr)
     fg = COLOR_WHITE; bg = COLOR_BLUE;
     if (center) aa_clear(px, 4);
     else aa_checker(px, 2, 1, (mx ^ my) & 1);
-  } else if (t >= FOOTBALLGAME1 && t <= FOOTBALLGAME2) { /* game day (anim) */
+  } else if (t >= FOOTBALLGAME1 && t <= FOOTBALLGAME2 + 7) { /* game day (anim) */
     fg = COLOR_WHITE; bg = COLOR_GREEN;
     aa_checker(px, 3, 1, h & 1);			/* the crowd */
   } else if (t >= STADIUMBASE && t < NUCLEARBASE) {	/* stadium */

@@ -236,10 +236,9 @@ _finish_load(void)
     CityTime = 0;
   if ((CityTax > 20) || (CityTax < 0))
     CityTax = 7;
-  if ((SimSpeed < 0) || (SimSpeed > 3))
-    SimSpeed = 3;
-
-  setSpeed(SimSpeed);
+  /* ignore the speed stored in the file (often 0): a loaded city always
+   * starts running slow, never paused */
+  setSpeed(1);
   setSkips(0);
 
   InitFundingLevel();
@@ -454,7 +453,7 @@ LoadScenario(short s)
   //  sim_skips = sim_skip = 0;
   InvalidateMaps();
   InvalidateEditors();
-  setSpeed(3);
+  setSpeed(1);
   CityTax = 7;
   gettimeofday(&start_time, NULL);
 

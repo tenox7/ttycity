@@ -212,18 +212,18 @@ nc_cell(int mapx, int mapy)
 		      INDBASE, IZB - 4, PORTBASE - 1, 4, -1, -1);
   } else if (t >= PORTBASE && t <= LASTPORT) {
     ch = 'W'; fg = COLOR_WHITE; bg = COLOR_BLUE; bold = 1;
-  } else if ((t >= AIRPORTBASE && t <= AIRPORT) || (t >= RADAR0 && t <= RADAR7)) {
+  } else if ((t >= AIRPORTBASE && t < COALBASE) || (t >= RADAR0 && t <= RADAR7)) {
     ch = 'A'; fg = COLOR_BLACK; bg = COLOR_WHITE;
   } else if (t >= COALBASE && t <= LASTPOWERPLANT) {
     ch = 'E'; fg = COLOR_WHITE; bg = COLOR_RED; bold = 1;
-  } else if (t >= FIRESTBASE && t <= FIRESTATION) {
+  } else if (t >= FIRESTBASE && t < POLICESTBASE) {
     ch = 'F'; fg = COLOR_WHITE; bg = COLOR_RED; bold = 1;
-  } else if (t >= POLICESTBASE && t <= POLICESTATION) {
+  } else if (t >= POLICESTBASE && t < STADIUMBASE) {
     ch = 'P'; fg = COLOR_WHITE; bg = COLOR_RED; bold = 1;
-  } else if ((t >= STADIUMBASE && t <= FULLSTADIUM) ||
-	     (t >= FOOTBALLGAME1 && t <= FOOTBALLGAME2)) {
+  } else if ((t >= STADIUMBASE && t < NUCLEARBASE) ||
+	     (t >= FOOTBALLGAME1 && t <= FOOTBALLGAME2 + 7)) {
     ch = 'S'; fg = COLOR_BLACK; bg = COLOR_WHITE; bold = 1;
-  } else if (t >= NUCLEARBASE && t <= NUCLEAR) {
+  } else if (t >= NUCLEARBASE && t <= LASTZONE) {
     ch = 'N'; fg = COLOR_BLACK; bg = COLOR_GREEN; bold = 1;
   } else if ((t >= HBRDG0 && t <= HBRDG3) || (t >= VBRDG0 && t <= VBRDG3)) {
     ch = '='; fg = COLOR_WHITE; bg = COLOR_BLACK;	/* draw bridge */

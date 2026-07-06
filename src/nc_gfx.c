@@ -132,10 +132,6 @@ nc_zone_val(int t, int builtBase, int dmod)
   return ((t - builtBase) / 9) / dmod;
 }
 
-/* quadrant-block density fills: lots visibly fill in as the zone grows */
-static char *fill4[4] = { "▗ ", "▚ ", "▚▞", "▙▟" };
-static char *fill5[5] = { "▗ ", "▚ ", "▞▖", "▛▞", "▟▛" };
-
 /* zone-center icon by land value (GetCRVal 0..3); the top glyph (🌇/🏦) is
  * reserved for zones at max value AND max density; industrial is always 🏭 */
 static char *res_val[4] = { "🛖", "🏠", "🏡", "🏡" };
@@ -147,6 +143,23 @@ static char *water_tex[4] = { "⣀⣀", "⠤⠤", "⣀⠤", "⠤⣀" };
 
 /* quadrant-block debris */
 static char *rubble_tex[4] = { "▚▞", "▞▖", "▙▘", "▗▚" };
+
+/* stadium (4x4 lot): chalk-line oval on the green pitch, ball/game at center.
+ * Indexed by tile offset row*4+col; the same layout serves the empty (779+)
+ * and full (795+) plots since they are 16 tiles apart. */
+static char *stad_gl[16] = {
+  "◜◠", "◠◠", "◠◠", "◠◝",
+  "( ", "  ", "  ", " )",
+  "( ", "  ", "  ", " )",
+  "◟◡", "◡◡", "◡◡", "◡◞"
+};
+
+/* police station (3x3 lot): dashed fence around the yard, officer at center */
+static char *fence_gl[9] = {
+  "┏┅", "┅┅", "┅┓",
+  "┇ ", "  ", " ┇",
+  "┗┅", "┅┅", "┅┛"
+};
 
 static void
 uni_tile(int sy, int sx, int mx, int my)
@@ -250,7 +263,9 @@ uni_tile(int sy, int sx, int mx, int my)
     return;
   }
 
-  /* ---- R/C/I zones: emoji skyline center, quadrant fills around it ---- */
+  /* ---- R/C/I zones: lot fills in with copies of the center icon as the
+   * zone develops (same rank/threshold progression as text-mode zone_glyph);
+   * still-vacant lot cells stay ░░ ---- */
   if (t >= RESBASE && t < COMBASE) {
     if (t >= LHTHR && t <= HHTHR) {			/* single family house */
       uput(sy, sx, res_val[(t - LHTHR) / 3], COLOR_BLACK, COLOR_CYAN, 0);
@@ -260,10 +275,8 @@ uni_tile(int sy, int sx, int mx, int my)
     if (den >= 0) {
       val = nc_zone_val(t, RZB - 4, 4);
       ico = (den == 3 && val == 3) ? "🌇" : res_val[val];
-      if (center)        uput(sy, sx, ico, COLOR_BLACK, COLOR_CYAN, 0);
-      else if (vac)      uput(sy, sx, "░░", COLOR_BLACK, COLOR_CYAN, 0);
-      else if (den == 3) uput(sy, sx, ico, COLOR_BLACK, COLOR_CYAN, 0);
-      else               uput(sy, sx, fill4[den], COLOR_BLACK, COLOR_CYAN, 0);
+      if (vac) uput(sy, sx, "░░", COLOR_BLACK, COLOR_CYAN, 0);
+      else     uput(sy, sx, ico, COLOR_BLACK, COLOR_CYAN, 0);
       return;
     }
     if (t <= RESBASE + 8) {				/* empty designated lot */
@@ -279,10 +292,8 @@ uni_tile(int sy, int sx, int mx, int my)
     if (den >= 0) {
       val = nc_zone_val(t, CZB - 4, 5);
       ico = (den == 4 && val == 3) ? "🏦" : com_val[val];
-      if (center)        uput(sy, sx, ico, COLOR_WHITE, COLOR_BLUE, A_BOLD);
-      else if (vac)      uput(sy, sx, "░░", COLOR_WHITE, COLOR_BLUE, 0);
-      else if (den == 4) uput(sy, sx, ico, COLOR_WHITE, COLOR_BLUE, A_BOLD);
-      else               uput(sy, sx, fill5[den], COLOR_WHITE, COLOR_BLUE, A_BOLD);
+      if (vac) uput(sy, sx, "░░", COLOR_WHITE, COLOR_BLUE, 0);
+      else     uput(sy, sx, ico, COLOR_WHITE, COLOR_BLUE, A_BOLD);
       return;
     }
     if (t <= COMBASE + 8) {
@@ -296,10 +307,8 @@ uni_tile(int sy, int sx, int mx, int my)
   if (t >= INDBASE && t < PORTBASE) {
     den = nc_zone_den(t, IZB - 4, PORTBASE - 1, 4, &vac);
     if (den >= 0) {
-      if (center)        uput(sy, sx, "🏭", COLOR_YELLOW, COLOR_MAGENTA, A_BOLD);
-      else if (vac)      uput(sy, sx, "░░", COLOR_YELLOW, COLOR_MAGENTA, 0);
-      else if (den == 3) uput(sy, sx, "🏭", COLOR_YELLOW, COLOR_MAGENTA, A_BOLD);
-      else               uput(sy, sx, fill4[den], COLOR_YELLOW, COLOR_MAGENTA, A_BOLD);
+      if (vac) uput(sy, sx, "░░", COLOR_YELLOW, COLOR_MAGENTA, 0);
+      else     uput(sy, sx, "🏭", COLOR_YELLOW, COLOR_MAGENTA, A_BOLD);
       return;
     }
     if (t <= INDBASE + 8) {
@@ -338,17 +347,19 @@ uni_tile(int sy, int sx, int mx, int my)
   }
   if (t >= POLICESTBASE && t < STADIUMBASE) {		/* police station */
     if (center) uput(sy, sx, "👮", COLOR_WHITE, COLOR_BLUE, A_BOLD);
-    else        uput(sy, sx, "▒▒", COLOR_WHITE, COLOR_BLUE, 0);
+    else        uput(sy, sx, fence_gl[(t - POLICESTBASE) % 9],
+		     COLOR_WHITE, COLOR_BLUE, A_BOLD);
     return;
   }
-  if (t >= FOOTBALLGAME1 && t <= FOOTBALLGAME2) {	/* game day (anim) */
+  if (t >= FOOTBALLGAME1 && t <= FOOTBALLGAME2 + 7) {	/* game day (anim) */
     uput(sy, sx, "🏈", COLOR_WHITE, COLOR_GREEN, 0);
     return;
   }
   if (t >= STADIUMBASE && t < NUCLEARBASE) {		/* stadium */
     if (center) uput(sy, sx, (t >= FULLSTADIUM) ? "🏈" : "⚽",
-		     COLOR_BLACK, COLOR_WHITE, A_BOLD);
-    else        uput(sy, sx, "▒▒", COLOR_BLACK, COLOR_WHITE, 0);
+		     COLOR_WHITE, COLOR_GREEN, A_BOLD);
+    else        uput(sy, sx, stad_gl[(t - STADIUMBASE) % 16],
+		     COLOR_WHITE, COLOR_GREEN, A_BOLD);
     return;
   }
   if (t >= NUCLEARBASE && t <= LASTZONE) {		/* nuclear power */

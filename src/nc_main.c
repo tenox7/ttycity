@@ -201,7 +201,7 @@ start_new_city(int seed)
   GenerateSomeCity(seed);
   setCityName("Micropolis");
   SetGameLevelFunds(StartupGameLevel);
-  setSpeed(3);
+  setSpeed(1);
 }
 
 /* called from the File menu */
@@ -220,7 +220,7 @@ start_load_city(char *fname)
   if (!LoadCity(fname)) return 0;
   DoSimInit();
   Kick();
-  setSpeed(3);
+  setSpeed(1);
   return 1;
 }
 

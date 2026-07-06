@@ -90,6 +90,21 @@ static Menu menus[] = {
 static int MenuOpen = -1;	/* -1 = closed, else menu index */
 static int MenuSel = 0;		/* highlighted item in the open menu */
 
+/* Repaint the whole screen (dropdown gone) before an action opens a modal:
+ * the modal's nested input loop freezes the main render loop, so whatever is
+ * on screen now stays visible behind the modal box. */
+static void
+menu_backdrop(void)
+{
+  clear();
+  nc_draw_toolbar(EditorView);
+  nc_draw_minimap();
+  nc_draw_editor(EditorView);
+  nc_draw_status(EditorView);
+  nc_draw_minimap_late();
+  nc_menu_draw(COLS);
+}
+
 int
 nc_menu_active(void)
 {
@@ -215,8 +230,8 @@ nc_menu_key(int ch)
   case '\n': case '\r': case KEY_ENTER:
     { int id = menus[MenuOpen].items[MenuSel].id;
       MenuOpen = -1;
+      menu_backdrop();
       if (id != A_SEP) do_action(id); }
-    clear();
     break;
   case 27:			/* Esc */
 #ifdef KEY_F
@@ -265,8 +280,8 @@ nc_menu_mouse(int y, int x)
   if (j >= 0 && j < m->n && x >= mx && x < mx + w) {
     int id = m->items[j].id;
     MenuOpen = -1;
+    menu_backdrop();
     if (id != A_SEP) do_action(id);
-    clear();
     return 1;
   }
   MenuOpen = -1;			/* clicked elsewhere: close */
