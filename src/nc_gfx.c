@@ -428,11 +428,11 @@ uni_cursor(int sy, int sx, int mx, int my)
 /* ==================== ascii mode (1 col/tile, monochrome) ================= */
 
 /* Poor man's line drawing indexed by nc_transit_mask (up<<3|dn<<2|lf<<1|rt).
- * Roads and wires share the | - + set (wires drawn bold); rails get '='
- * horizontals and are drawn in reverse video (the ballast strip, like the
- * default mode's black-on-white). */
+ * Roads and wires share the | - + set (wires drawn bold); roads are drawn in
+ * reverse video, like rails, mimicking the default mode's filled bg.  Rails
+ * collapse to a single reverse-video '#' -- a solid track bed instead of
+ * line art. */
 static char as_road[17] = "+---|+++|+++|+++";
-static char as_rail[17] = "+===|+++|+++|+++";
 
 /* One zone lot cell (mirrors zone_glyph, nc_render.c, minus the colors):
  * reverse-video bold letter = built center, UPPER/lower letter = dense/sparse
@@ -487,11 +487,11 @@ as_cell(int mx, int my)
   cls = nc_transit_class(t);
   if (cls == 1) {
     if (t >= HTRFBASE && t <= LASTROAD)			/* heavy traffic */
-      return ((chtype)(((mx + my) & 1) ? ',' : '`')) | A_BOLD;
-    return (chtype)as_road[nc_transit_mask(mx, my, 1)];
+      return ((chtype)(((mx + my) & 1) ? ',' : '`')) | A_BOLD | A_REVERSE;
+    return ((chtype)as_road[nc_transit_mask(mx, my, 1)]) | A_REVERSE;
   }
   if (cls == 2)
-    return ((chtype)as_rail[nc_transit_mask(mx, my, 2)]) | A_REVERSE;
+    return ((chtype)'#') | A_REVERSE;
   if (cls == 3)
     return ((chtype)as_road[nc_transit_mask(mx, my, 3)]) | A_BOLD;
 
@@ -615,6 +615,25 @@ nc_gfx_set(char *name)
     return 1;
   }
   return 0;
+}
+
+/* List every registered mode with a one-line blurb and live availability;
+ * used for -gfx with a missing/unknown argument, "-gfx help", "-gfx list". */
+void
+nc_gfx_list(FILE *f)
+{
+  static char *blurb[NMODES] = {
+    "1 col/tile, ACS + 8 colors -- default, works on any curses",
+    "2 cols/tile, UTF-8 emoji tiles -- needs a UTF-8 locale",
+    "1 col/tile, strict 7-bit, monochrome -- vt100-safe",
+    "2 cols/tile, aalib dithered shading, in color -- `make aalib` build"
+  };
+  int i;
+
+  fprintf(f, "available -gfx modes:\n");
+  for (i = 0; i < NMODES; i++)
+    fprintf(f, "  %-9s%s%s\n", modes[i]->name, blurb[i],
+	    (modes[i]->avail && !modes[i]->avail()) ? "  [unavailable]" : "");
 }
 
 /* Pick a startup mode from the environment when no -gfx flag was given; runs

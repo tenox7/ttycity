@@ -370,8 +370,10 @@ main(int argc, char *argv[])
       shot_frames = atoi(argv[++i]);
     } else if (!strcmp(argv[i], "-theme") && i + 1 < argc) {
       nc_set_theme(argv[++i]);			/* tan | grass | dark */
-    } else if (!strcmp(argv[i], "-gfx") && i + 1 < argc) {
-      gfxname = argv[++i];			/* standard | unicode | ascii | aa */
+    } else if (!strcmp(argv[i], "-gfx")) {
+      /* no mode given: defer to the post-loop check below, so it runs after
+       * setlocale() and reports unicode's real availability */
+      gfxname = (i + 1 >= argc || argv[i + 1][0] == '-') ? "help" : argv[++i];
     } else if (argv[i][0] == '-') {
       /* other options handled in later phases; ignore for now */
     } else if (!loadfile && (strstr(argv[i], ".cty") || strstr(argv[i], ".scn"))) {
@@ -383,12 +385,13 @@ main(int argc, char *argv[])
   }
 
   setlocale(LC_ALL, "");	/* multibyte output for the unicode gfx mode */
+  if (gfxname && (!strcmp(gfxname, "help") || !strcmp(gfxname, "list"))) {
+    nc_gfx_list(stdout);
+    return 0;
+  }
   if (gfxname && !nc_gfx_set(gfxname)) {
-    fprintf(stderr,
-	    "ttycity: unknown or unavailable -gfx mode '%s'\n"
-	    "         (modes: standard, unicode, ascii, aa; unicode needs"
-	    " a UTF-8 locale,\n         aa a `make aalib` build)\n",
-	    gfxname);
+    fprintf(stderr, "ttycity: unknown or unavailable -gfx mode '%s'\n\n", gfxname);
+    nc_gfx_list(stderr);
     return 1;
   }
 
