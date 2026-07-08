@@ -29,7 +29,7 @@ Without `-gfx` the mode is auto-detected from `TERM`/locale.
 | Shift + letter  | pick a tool (see palette) |
 | Enter           | build at the cursor |
 | `m`             | cycle overview map / overlays |
-| `u`             | cycle graphics mode |
+| `u`             | pick graphics mode |
 | space           | pause · `0`–`3` set speed |
 | Esc / F10       | menu bar |
 | `g`             | new city · `q` quit |

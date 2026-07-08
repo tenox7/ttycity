@@ -327,13 +327,8 @@ handle_key(int ch)
     clear();
     break;
 
-  case 'u':				/* cycle graphics mode (default/unicode/...) */
-    {
-      char msg[48];
-      sprintf(msg, "Graphics: %s", nc_gfx_cycle());
-      nc_set_status(msg);
-      clear();				/* tile width may have changed */
-    }
+  case 'u':				/* pick graphics mode */
+    nc_gfx_modal();
     break;
 
   case 'g': case 'G':

@@ -764,3 +764,87 @@ nc_load_embedded_modal(void)
   }
   clear();
 }
+
+/* ---- graphics-mode picker ------------------------------------------------- */
+
+/*
+ * 'u' key / Options menu "Graphics >": pick a mode from a list instead of
+ * cycling blind through them.  The active mode is marked "[x]" and
+ * preselected; unavailable modes (e.g. "aa" without `make aalib`) are listed
+ * with a tag but picking one is a no-op.
+ */
+void
+nc_gfx_modal(void)
+{
+  int n = nc_gfx_count();
+  int rows, cols, top, left, w, h, listh, i;
+  int sel = nc_gfx_current(), off = 0, done = 0;
+
+  while (!done) {
+    getmaxyx(stdscr, rows, cols);
+    w = cols - 8; if (w > 40) w = 40; if (w < 24) w = 24;
+    h = n + 5; if (h > rows - 2) h = rows - 2; if (h < 8) h = 8;
+    listh = h - 4;
+    top = (rows - h) / 2; if (top < 0) top = 0;
+    left = (cols - w) / 2; if (left < 0) left = 0;
+    nc_popup_snap(&left, &w);
+
+    if (sel < 0) sel = 0;
+    if (sel >= n) sel = n - 1;
+    if (sel < off) off = sel;
+    if (sel >= off + listh) off = sel - listh + 1;
+
+    { int r, c;
+      attrset(NC_CP(COLOR_WHITE, COLOR_BLUE) | A_BOLD);
+      for (r = 0; r < h; r++) { move(top + r, left); for (c = 0; c < w; c++) addch(' '); }
+    }
+    mvaddnstr(top, left + 2, " Graphics Mode ", w - 4);
+
+    for (i = 0; i < listh && off + i < n; i++) {
+      int mi = off + i, selrow = (mi == sel);
+      char line[64];
+      attrset(selrow ? NC_MSEL(NC_CP(COLOR_BLACK, COLOR_CYAN) | A_BOLD)
+		     : NC_CP(COLOR_WHITE, COLOR_BLUE));
+      sprintf(line, " [%c] %s%s", mi == nc_gfx_current() ? 'x' : ' ',
+	      nc_gfx_name_at(mi), nc_gfx_avail_at(mi) ? "" : "  [unavailable]");
+      { int x; move(top + 2 + i, left + 1); for (x = 0; x < w - 2; x++) addch(' '); }
+      mvaddnstr(top + 2 + i, left + 1, line, w - 2);
+    }
+
+    attrset(NC_CP(COLOR_YELLOW, COLOR_BLUE) | A_BOLD);
+    mvaddnstr(top + h - 1, left + 2, " up/down  Enter=select  Esc=cancel ", w - 4);
+    attrset(A_NORMAL);
+    refresh();
+
+    { int act = 0;
+    switch (getch()) {
+    case ERR: break;
+    case '`': nc_screenshot("/tmp/ttycity_shot.txt"); break;
+    case KEY_UP: case 'k':   sel--; break;
+    case KEY_DOWN: case 'j': sel++; break;
+    case KEY_NPAGE:          sel += listh; break;
+    case KEY_PPAGE:          sel -= listh; break;
+    case '\n': case '\r': case KEY_ENTER:
+      act = 1; break;
+#if defined(KEY_MOUSE) && defined(NCURSES_MOUSE_VERSION)
+    case KEY_MOUSE:
+      switch (modal_list_mouse(top, left, w, h, listh, off, n, &sel)) {
+      case 2: act = 1; break;
+      case 3: done = 1; break;
+      }
+      break;
+#endif
+    case 27: case 'q':
+      done = 1; break;
+    }
+    if (act && nc_gfx_avail_at(sel)) {
+      char msg[64];
+      sprintf(msg, "Graphics: %s", nc_gfx_name_at(sel));
+      nc_gfx_select_at(sel);
+      nc_set_status(msg);
+      done = 1;
+    }
+    }
+  }
+  clear();
+}

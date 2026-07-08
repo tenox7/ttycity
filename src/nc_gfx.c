@@ -791,20 +791,44 @@ nc_popup_snap(int *x, int *w)
   if (*w & 1) (*w)++;
 }
 
-/* step to the next available mode; returns its name (for the status line) */
-char *
-nc_gfx_cycle(void)
+/* ---- accessors for the picker (nc_gfx_modal, nc_dialogs.c) --------------- */
+
+int
+nc_gfx_count(void)
 {
-  int i, k;
+  return NMODES;
+}
+
+char *
+nc_gfx_name_at(int i)
+{
+  return (i >= 0 && i < NMODES) ? modes[i]->name : NULL;
+}
+
+int
+nc_gfx_avail_at(int i)
+{
+  if (i < 0 || i >= NMODES) return 0;
+  return !modes[i]->avail || modes[i]->avail();
+}
+
+int
+nc_gfx_current(void)
+{
+  int i;
 
   for (i = 0; i < NMODES; i++)
-    if (modes[i] == Gfx) break;
-  for (k = 1; k <= NMODES; k++) {
-    struct GfxOps *m = modes[(i + k) % NMODES];
-    if (m->avail && !m->avail()) continue;
-    Gfx = m;
-    break;
-  }
+    if (modes[i] == Gfx) return i;
+  return 0;
+}
+
+/* activate mode i ('u' key / Options menu picker); 0 and no-op if out of
+ * range or currently unavailable */
+int
+nc_gfx_select_at(int i)
+{
+  if (!nc_gfx_avail_at(i)) return 0;
+  Gfx = modes[i];
   nc_colors_init();	/* colors start lazily on first switch to a color mode */
-  return Gfx->name;
+  return 1;
 }

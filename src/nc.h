@@ -49,8 +49,12 @@ extern struct GfxOps *Gfx;			/* current mode */
 extern struct GfxOps GfxAA;			/* nc_aa.c: aalib-style shading */
 int   nc_gfx_set(char *name);			/* -gfx <name>; 0 = unknown/unavail */
 void  nc_gfx_auto(void);			/* no -gfx: pick from TERM/locale */
-char *nc_gfx_cycle(void);			/* 'u' key / Options menu */
 void  nc_gfx_list(FILE *f);			/* -gfx help/list, or bad -gfx arg */
+int   nc_gfx_count(void);			/* number of registered modes */
+char *nc_gfx_name_at(int i);			/* mode name by index, or NULL */
+int   nc_gfx_avail_at(int i);			/* 1 if usable now */
+int   nc_gfx_current(void);			/* index of the active mode */
+int   nc_gfx_select_at(int i);			/* switch to mode i; 0 if unavailable */
 void  nc_popup_snap(int *x, int *w);		/* align popup to the tile grid */
 int   nc_zone_den(int t, int builtBase, int builtHi, int dmod, int *vac);
 
@@ -81,6 +85,7 @@ void nc_load_modal(void);			/* load .cty from disk (browser) */
 void nc_load_embedded_modal(void);		/* load a baked-in example city */
 void nc_save_modal(int saveas);
 int  nc_prompt(char *title, char *buf, int buflen);
+void nc_gfx_modal(void);			/* 'u' key / Options menu: pick a mode */
 
 /* --- nc_menu.c ----------------------------------------------------------- */
 int  nc_menu_active(void);

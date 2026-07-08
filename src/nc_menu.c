@@ -177,10 +177,7 @@ do_action(int id)
     { char msg[64]; sprintf(msg, "Land color: %s", nc_cycle_theme());
       nc_set_status(msg); }
     break;
-  case A_GFX:
-    { char msg[64]; sprintf(msg, "Graphics: %s ('u' cycles)", nc_gfx_cycle());
-      nc_set_status(msg); }
-    break;
+  case A_GFX: nc_gfx_modal(); break;
   }
 }
 
