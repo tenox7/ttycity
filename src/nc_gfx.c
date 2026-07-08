@@ -496,7 +496,7 @@ as_cell(int mx, int my)
     return ((chtype)as_road[nc_transit_mask(mx, my, 3)]) | A_BOLD;
 
   if (t == DIRT) return (chtype)'.';
-  if (t >= RIVER && t <= LASTRIVEDGE) return (chtype)'~';
+  if (t >= RIVER && t <= LASTRIVEDGE) return ((chtype)'~') | A_REVERSE;
   if (t >= TREEBASE && t < WOODS2) return (chtype)'^';
   if (t >= WOODS2 && t <= WOODS5) return (chtype)'"';	/* user-placed park */
   if (t >= RUBBLE && t <= LASTRUBBLE) return (chtype)'%';
