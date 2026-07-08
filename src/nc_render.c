@@ -75,9 +75,10 @@ nc_transit_mask(int x, int y, int cls)
   return (up << 3) | (dn << 2) | (lf << 1) | rt;
 }
 
-/* Line-drawing glyph chosen from the four same-class neighbors. */
-static chtype
-line_glyph(int x, int y, int cls)
+/* Line-drawing glyph chosen from the four same-class neighbors.  Exported
+ * (nc_line_glyph) so the "acs" mono mode can reuse the same auto-tiling. */
+chtype
+nc_line_glyph(int x, int y, int cls)
 {
   int m = nc_transit_mask(x, y, cls);
 
@@ -170,10 +171,10 @@ nc_cell(int mapx, int mapy)
       ch = ((mapx + mapy) & 1) ? ',' : '`';
       return ((chtype)ch) | NC_CP(COLOR_YELLOW, COLOR_BLACK) | A_BOLD;
     }
-    return line_glyph(mapx, mapy, 1) | NC_CP(COLOR_WHITE, COLOR_BLACK);
+    return nc_line_glyph(mapx, mapy, 1) | NC_CP(COLOR_WHITE, COLOR_BLACK);
   }
-  if (cls == 2) return line_glyph(mapx, mapy, 2) | NC_CP(COLOR_BLACK, COLOR_WHITE);
-  if (cls == 3) return line_glyph(mapx, mapy, 3) | NC_CP(COLOR_RED, land) | A_BOLD;
+  if (cls == 2) return nc_line_glyph(mapx, mapy, 2) | NC_CP(COLOR_BLACK, COLOR_WHITE);
+  if (cls == 3) return nc_line_glyph(mapx, mapy, 3) | NC_CP(COLOR_RED, land) | A_BOLD;
 
   /* Light theme (modeled on the original game): the surface is a background
    * color, glyphs/letters are drawn on top. */

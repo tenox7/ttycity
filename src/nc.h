@@ -65,6 +65,7 @@ int  nc_toolbar_hit(int y, int x);		/* click -> tool state, or -1 */
 void nc_colors_init(void);
 int  nc_transit_class(int t);			/* 0 none, 1 road, 2 rail, 3 wire */
 int  nc_transit_mask(int x, int y, int cls);	/* up/dn/lf/rt neighbor bits */
+chtype nc_line_glyph(int x, int y, int cls);	/* ACS glyph for road/rail/wire */
 chtype nc_sprite_glyph(int type);		/* default-mode sprite chtype */
 chtype nc_cell(int mapx, int mapy);		/* decode Map[x][y] -> glyph */
 void nc_draw_editor(SimView *view);		/* render viewport to stdscr */

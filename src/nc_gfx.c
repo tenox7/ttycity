@@ -19,6 +19,9 @@
  *   aa       2 cols/tile, rendered through the real aalib, in color.  Lives
  *            in nc_aa.c and is compiled in only by `make aalib` (libaa is
  *            rare); otherwise its avail() fails and the mode is skipped.
+ *   acs      1 col/tile, ascii's mono rules (bold/reverse only, no color)
+ *            but real ACS box-drawing for roads/rails/wires instead of the
+ *            +/-/| approximation.
  *
  * Future slots: braille 2x4-dot microtiles.  Add a GfxOps and list it in
  * modes[].
@@ -495,7 +498,7 @@ as_cell(int mx, int my)
   if (cls == 3)
     return ((chtype)as_road[nc_transit_mask(mx, my, 3)]) | A_BOLD;
 
-  if (t == DIRT) return (chtype)'.';
+  if (t == DIRT) return (chtype)' ';
   if (t >= RIVER && t <= LASTRIVEDGE) return ((chtype)'~') | A_REVERSE;
   if (t >= TREEBASE && t < WOODS2) return (chtype)'^';
   if (t >= WOODS2 && t <= WOODS5) return (chtype)'"';	/* user-placed park */
@@ -581,6 +584,106 @@ as_cursor(int sy, int sx, int mx, int my)
   mvaddch(sy, sx, (as_cell(mx, my) ^ A_REVERSE) | A_UNDERLINE);
 }
 
+/* ==================== acs mode (1 col/tile, monochrome ACS lines) ========= */
+
+/* Same as as_cell, but roads/rails/wires draw real ACS box-drawing
+ * (nc_line_glyph, the same auto-tiler the color "standard" mode uses)
+ * instead of the 7-bit +/-/| approximation.  Plain 8-bit curses ACS has no
+ * double-line glyphs (that's a wide-ncurses cchar_t/WACS_D_* or Unicode-only
+ * thing), so road/rail stay visually distinct the same way the default color
+ * mode does it: road is a plain line (no fill), rail is reverse video (the
+ * ballast strip).  Same bold/reverse everywhere else -- still no color set
+ * anywhere. */
+static chtype
+ln_cell(int mx, int my)
+{
+  int raw = Map[mx][my];
+  int blink = (flagBlink <= 0);
+  int t, cls;
+
+  t = raw;
+  if ((t & LOMASK) >= TILE_COUNT) t -= TILE_COUNT;
+  if (blink && (t & ZONEBIT) && !(t & PWRBIT)) {
+    t = LIGHTNINGBOLT;
+  } else {
+    t &= LOMASK;
+  }
+
+  if (t == LIGHTNINGBOLT)				/* unpowered zone blink */
+    return ((chtype)'!') | A_BOLD;
+
+  cls = nc_transit_class(t);
+  if (cls == 1) {
+    if (t >= HTRFBASE && t <= LASTROAD)			/* heavy traffic */
+      return ((chtype)(((mx + my) & 1) ? ',' : '`')) | A_BOLD;
+    return nc_line_glyph(mx, my, 1);			/* plain: road has no fill */
+  }
+  if (cls == 2)
+    return nc_line_glyph(mx, my, 2) | A_REVERSE;	/* rail: reverse ballast strip */
+  if (cls == 3)
+    return nc_line_glyph(mx, my, 3) | A_BOLD;
+
+  if (t == DIRT) return (chtype)' ';
+  if (t >= RIVER && t <= LASTRIVEDGE) return ((chtype)'~') | A_REVERSE;
+  if (t >= TREEBASE && t < WOODS2) return (chtype)'^';
+  if (t >= WOODS2 && t <= WOODS5) return (chtype)'"';	/* user-placed park */
+  if (t >= RUBBLE && t <= LASTRUBBLE) return (chtype)'%';
+  if (t >= FLOOD && t <= LASTFLOOD) return ((chtype)'~') | A_BOLD;
+  if (t == RADTILE) return ((chtype)'*') | A_BOLD;
+  if (t >= FIREBASE && t <= LASTFIRE) return ((chtype)'!') | A_BOLD | A_REVERSE;
+
+  if (t >= HOSPITAL - 4 && t <= HOSPITAL + 4)
+    return (t == HOSPITAL) ? (((chtype)'H') | A_BOLD | A_REVERSE)
+			   : (((chtype)' ') | A_REVERSE);
+  if (t >= CHURCH - 4 && t <= CHURCH + 4)
+    return (t == CHURCH) ? (((chtype)'X') | A_BOLD | A_REVERSE)
+			 : (((chtype)' ') | A_REVERSE);
+
+  if (t >= RESBASE && t < COMBASE) {
+    if (t >= LHTHR && t <= HHTHR) return (chtype)'r';	/* single family house */
+    return as_zone(t, raw, 'R', RESBASE, RZB - 4, HOSPITAL - 5, 4);
+  }
+  if (t >= COMBASE && t < INDBASE)
+    return as_zone(t, raw, 'C', COMBASE, CZB - 4, INDBASE - 1, 5);
+  if (t >= INDBASE && t < PORTBASE)
+    return as_zone(t, raw, 'I', INDBASE, IZB - 4, PORTBASE - 1, 4);
+
+  if (t >= PORTBASE && t <= LASTPORT) return as_bldg(raw, 'W');
+  if (t >= RADAR0 && t <= RADAR7)			/* airport tower (anim) */
+    return ((chtype)'A') | A_REVERSE;
+  if (t >= AIRPORTBASE && t < COALBASE) return as_bldg(raw, 'A');
+  if (t >= COALBASE && t <= LASTPOWERPLANT) return as_bldg(raw, 'E');
+  if (t >= FIRESTBASE && t < POLICESTBASE) return as_bldg(raw, 'F');
+  if (t >= POLICESTBASE && t < STADIUMBASE) return as_bldg(raw, 'P');
+  if (t >= FOOTBALLGAME1 && t <= FOOTBALLGAME2)		/* game day (anim) */
+    return ((chtype)'S') | A_REVERSE;
+  if (t >= STADIUMBASE && t < NUCLEARBASE) return as_bldg(raw, 'S');
+  if (t >= NUCLEARBASE && t <= LASTZONE) return as_bldg(raw, 'N');
+
+  if ((t >= HBRDG0 && t <= HBRDG3) || (t >= VBRDG0 && t <= VBRDG3))
+    return ((chtype)'=') | A_BOLD;			/* open drawbridge */
+  if (t >= FOUNTAIN && t <= INDBASE2) return (chtype)'"';
+  if (t >= TINYEXP && t <= LASTTINYEXP)
+    return ((chtype)'*') | A_BOLD | A_REVERSE;		/* explosion */
+  if ((t >= SMOKEBASE && t < TINYEXP) ||
+      (t >= COALSMOKE1 && t <= COALSMOKE4 + 3))
+    return ((chtype)'*') | A_BOLD;
+
+  return (chtype)'*';					/* unknown tile */
+}
+
+static void
+ln_tile(int sy, int sx, int mx, int my)
+{
+  mvaddch(sy, sx, ln_cell(mx, my));
+}
+
+static void
+ln_cursor(int sy, int sx, int mx, int my)
+{
+  mvaddch(sy, sx, (ln_cell(mx, my) ^ A_REVERSE) | A_UNDERLINE);
+}
+
 /* ======================== mode registry ================================== */
 
 static struct GfxOps GfxDefault =
@@ -589,9 +692,11 @@ static struct GfxOps GfxUnicode =
   { "unicode", 2, 1, 0, uni_avail, uni_tile, uni_sprite, uni_cursor };
 static struct GfxOps GfxAscii =
   { "ascii",   1, 0, 1, NULL,      as_tile,  as_sprite,  as_cursor  };
+static struct GfxOps GfxAcs =
+  { "acs",     1, 0, 1, NULL,      ln_tile,  as_sprite,  ln_cursor  };
 
 /* future: braille microtiles */
-static struct GfxOps *modes[] = { &GfxDefault, &GfxUnicode, &GfxAscii, &GfxAA };
+static struct GfxOps *modes[] = { &GfxDefault, &GfxUnicode, &GfxAscii, &GfxAA, &GfxAcs };
 #define NMODES ((int)(sizeof(modes) / sizeof(modes[0])))
 
 struct GfxOps *Gfx = &GfxDefault;
@@ -626,7 +731,8 @@ nc_gfx_list(FILE *f)
     "1 col/tile, ACS + 8 colors -- default, works on any curses",
     "2 cols/tile, UTF-8 emoji tiles -- needs a UTF-8 locale",
     "1 col/tile, strict 7-bit, monochrome -- vt100-safe",
-    "2 cols/tile, aalib dithered shading, in color -- `make aalib` build"
+    "2 cols/tile, aalib dithered shading, in color -- `make aalib` build",
+    "1 col/tile, ACS lines, monochrome -- bold/reverse only, no color"
   };
   int i;
 
