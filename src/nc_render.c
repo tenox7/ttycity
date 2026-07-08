@@ -269,11 +269,14 @@ int EdTop = 1, EdLeft = 0, EdW = 0, EdH = 0;
 int MinimapW = 0;		/* width of the right-side minimap panel (0 = off) */
 int ToolbarW = 3;		/* width of the left-side tool palette */
 
-/* one vertical RCI demand bar row: "R[++++++]" (demand) / "C[------]" (surplus) */
+/* one vertical RCI demand bar row: "R[++++++]" (demand) / "C[------]" (surplus)
+ * in default/ascii modes; unicode swaps the ASCII fill for a shaded-block
+ * meter (full = demand, medium = surplus, light = empty track). */
 static void
 demand_row(int y, int x, char lbl, int valve, int color, int w)
 {
   int v = valve / 100, n = (v < 0) ? -v : v, k;
+  char *full;
 
   if (n > 6) n = 6;
   if (x + 9 > w) return;
@@ -281,7 +284,12 @@ demand_row(int y, int x, char lbl, int valve, int color, int w)
   move(y, x);
   addch(lbl);
   addch('[');
-  for (k = 0; k < 6; k++) addch(k < n ? (v >= 0 ? '+' : '-') : ' ');
+  if (Gfx->emojiui) {
+    full = (v >= 0) ? "█" : "▒";
+    for (k = 0; k < 6; k++) addstr(k < n ? full : "░");
+  } else {
+    for (k = 0; k < 6; k++) addch(k < n ? (v >= 0 ? '+' : '-') : ' ');
+  }
   addch(']');
   attrset(A_NORMAL);
 }
@@ -350,6 +358,11 @@ nc_draw_toolbar(SimView *view)
 
   expanded = (cols >= 90);
   cellw = expanded ? 5 : 3;
+  if (Gfx->emojiui) cellw = 4;	/* glyph is 2 cols + a 2-col gap: an even step (so
+				 * the tile-grid parity nudge below shifts every
+				 * column by the same amount, not alternating) and
+				 * fixed regardless of `expanded` -- a wider
+				 * terminal doesn't need a wider emoji cell */
   gridw = 3 * cellw;
   contentw = gridw > 12 ? gridw : 12;	/* wide enough for the info labels */
   if (cols >= 108)     { lpad = 2; rpad = 2; }
@@ -394,7 +407,7 @@ nc_draw_toolbar(SimView *view)
    * then the city stats that used to be a full-width HUD line, stacked
    * vertically.  On short terminals the tail is clipped, never the grid. */
   iy = top + ngr + 2;
-  if (iy + 15 >= top + height) iy = top + height - 16;
+  if (iy + 12 >= top + height) iy = top + height - 13;
   if (iy < top + ngr + 1) iy = top + ngr + 1;
   bot = top + height;
   ts = view->tool_state;
@@ -404,30 +417,30 @@ nc_draw_toolbar(SimView *view)
   sprintf(buf, "$%d", nc_tool_cost(ts));
   info_line(iy + 1, lpad, buf, contentw, bot, wcp);
 
-  if (iy + 3 < bot) demand_row(iy + 3, lpad, 'R', RValve, COLOR_GREEN, tw);
-  if (iy + 4 < bot) demand_row(iy + 4, lpad, 'C', CValve, COLOR_BLUE, tw);
-  if (iy + 5 < bot) demand_row(iy + 5, lpad, 'I', IValve, COLOR_MAGENTA, tw);
+  if (iy + 2 < bot) demand_row(iy + 2, lpad, 'R', RValve, COLOR_GREEN, tw);
+  if (iy + 3 < bot) demand_row(iy + 3, lpad, 'C', CValve, COLOR_BLUE, tw);
+  if (iy + 4 < bot) demand_row(iy + 4, lpad, 'I', IValve, COLOR_MAGENTA, tw);
 
   sprintf(buf, "@(%d,%d)", CursorX, CursorY);
-  info_line(iy + 7, lpad, buf, contentw, bot, wcp);
-  info_line(iy + 8, lpad, spd[SimSpeed & 3], contentw, bot, wcp);
+  info_line(iy + 5, lpad, buf, contentw, bot, wcp);
+  info_line(iy + 6, lpad, spd[SimSpeed & 3], contentw, bot, wcp);
 
   mon = (int)((CityTime % 48) >> 2);
   if (mon < 0 || mon > 11) mon = 0;
   sprintf(num, "%ld", (long)TotalFunds);
   makeDollarDecimalStr(num, dollars);	/* adds the '$' */
 
-  info_line(iy + 10, lpad, CityName ? CityName : "NowHere", contentw, bot,
+  info_line(iy + 7, lpad, CityName ? CityName : "NowHere", contentw, bot,
 	    wcp | A_BOLD);
   sprintf(buf, "%s %d", dateStr[mon],
 	  (int)StartingYear + (int)(CityTime / 48));
-  info_line(iy + 11, lpad, buf, contentw, bot, wcp);
-  info_line(iy + 12, lpad, dollars, contentw, bot, wcp);
+  info_line(iy + 8, lpad, buf, contentw, bot, wcp);
+  info_line(iy + 9, lpad, dollars, contentw, bot, wcp);
   sprintf(buf, "Pop:%ld", (long)CityPop);
-  info_line(iy + 13, lpad, buf, contentw, bot, wcp);
+  info_line(iy + 10, lpad, buf, contentw, bot, wcp);
   sprintf(buf, "Score:%d", (int)CityScore);
-  info_line(iy + 14, lpad, buf, contentw, bot, wcp);
-  info_line(iy + 15, lpad,
+  info_line(iy + 11, lpad, buf, contentw, bot, wcp);
+  info_line(iy + 12, lpad,
 	    cityClassStr[(CityClass >= 0 && CityClass < 6) ? CityClass : 0],
 	    contentw, bot, wcp);
 }
