@@ -13,7 +13,7 @@ All assets (scenarios, cities) are baked into the binary — no external files n
 ./ttycity                       # new random city
 ./ttycity ../cities/bruce.cty   # load a city file
 ./ttycity -theme grass          # tan (default) | grass | dark
-./ttycity -gfx standard         # classic curses look, 8 colors (default)
+./ttycity -gfx color            # classic curses look, 8 colors (default)
 ./ttycity -gfx unicode          # emoji / unicode / UTF-8 graphics
 ./ttycity -gfx ascii            # 7-bit monochrome vt100
 ./ttycity -gfx aa               # aalib rendering (optional build)

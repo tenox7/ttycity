@@ -36,7 +36,7 @@ extern int Quitting;
  * mode (braille, aalib shading, 7-bit ASCII, B&W...) = one new GfxOps entry.
  */
 struct GfxOps {
-  char *name;					/* "standard", "unicode", ... */
+  char *name;					/* "color", "unicode", ... */
   int tilew;					/* screen columns per map tile */
   int emojiui;					/* emoji faces on the tool palette */
   int mono;					/* emit no color anywhere (see NC_MONO) */

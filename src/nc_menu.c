@@ -293,6 +293,8 @@ void
 nc_menu_draw(int cols)
 {
   int i, x = 0;
+  char *gname = Gfx->name;
+  int glen = (int)strlen(gname);
 
   /* menu bar */
   attrset(NC_CP(COLOR_BLACK, COLOR_WHITE));
@@ -307,6 +309,9 @@ nc_menu_draw(int cols)
     addch(' ');
     x += (int)strlen(menus[i].title) + 3;
   }
+  /* current -gfx mode, top right */
+  attrset(NC_CP(COLOR_BLACK, COLOR_WHITE));
+  if (cols - glen - 1 > x) mvaddstr(0, cols - glen - 1, gname);
   attrset(A_NORMAL);
 
   /* open dropdown */
