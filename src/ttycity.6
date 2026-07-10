@@ -1,0 +1,355 @@
+.Dd July 10, 2026
+.Dt TTycITY 6
+.Os
+.Sh NAME
+.Nm ttycity
+.Nd terminal port of Micropolis (SimCity Classic)
+.Sh SYNOPSIS
+.Nm
+.Op Ar options
+.Op Ar cityfile
+.Op Ar seed
+.Sh DESCRIPTION
+.Nm
+is an ncurses-based port of
+.Micropolis Activity
+(the open-source version of SimCity Classic by Maxis).
+The original simulation engine is preserved; the X11/Tk front end is replaced
+with a terminal UI that works in any modern terminal emulator.
+.Pp
+All game assets (scenarios, example cities) are compiled into the binary.
+No external resource files are needed at runtime.
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl gfx Ar mode
+Select the tile-graphics rendering mode.
+Without
+.Fl gfx ,
+the mode is auto-detected from the
+.Ev TERM
+and locale environment variables.
+Available modes:
+.Bl -tag -width "unicode" -compact
+.It Cm color
+1 column per tile, plain ASCII with ACS line-drawing and 8 colors.
+Works on any curses implementation.
+This is the default mode.
+.It Cm unicode
+2 columns per tile, UTF-8: emoji buildings, box-drawing roads and rails,
+quadrant-block density fills, braille terrain textures.
+Requires a UTF-8 locale and a wide-capable curses library.
+.It Cm ascii
+1 column per tile, strict 7-bit ASCII, monochrome.
+No color is emitted anywhere; only bold and reverse video are used
+(the VT100-era look).
+.It Cm acs
+1 column per tile, monochrome like
+.Cm ascii
+but with real ACS box-drawing for roads, rails, and power lines.
+.It Cm aa
+2 columns per tile, aalib dithered shading in color.
+Optional; only available when built with
+.Ic make aalib .
+.El
+.Pp
+Aliases:
+.Cm default
+and
+.Cm standard
+are synonyms for
+.Cm color ;
+.Cm emoji
+for
+.Cm unicode ;
+.Cm vt100 ,
+.Cm mono ,
+.Cm bw ,
+and
+.Cm 7bit
+for
+.Cm ascii ;
+.Cm aalib
+and
+.Cm aa-lib
+for
+.Cm aa .
+.Pp
+Use
+.Fl gfx help
+or
+.Fl gfx list
+to show all modes and their availability.
+.It Fl theme Ar name
+Set the land background color theme.
+Available themes:
+.Bl -tag -width "grass" -compact
+.It Cm tan
+Yellow-brown ground (default).
+.It Cm grass
+Green ground.
+.It Cm dark
+Black ground.
+.El
+.It Fl shot Ar path
+Headless screenshot mode: advance
+.Ar frames
+iterations, render the screen to
+.Ar path
+as plain text, and exit.
+Implies no interactive session.
+.It Fl frames Ar N
+Number of simulation frames to advance in
+.Fl shot
+mode.
+Defaults to 60.
+.It Fl gfx Ar help
+.It Fl gfx Ar list
+Print the list of available graphics modes and exit.
+.El
+.Pp
+If an argument ends in
+.Pa .cty
+or
+.Pa .scn ,
+it is loaded as a city or scenario file.
+Otherwise, if the argument is a bare integer, it is used as the random seed
+for generating a new city.
+.Sh CONTROLS
+.Ss Keyboard
+.Bl -tag -width "space" -compact
+.It Ic arrow keys , hjkl
+Move the cursor.
+.It Ic Shift+letter
+Pick a tool (see
+.Sx TOOLS
+below).
+.It Ic Enter , x
+Build with the current tool at the cursor.
+.It Ic m
+Cycle the overview minimap and overlays.
+.It Ic u
+Open the graphics-mode picker.
+.It Ic space
+Pause / unpause the simulation.
+.It Ic 0 Ns , Ns Ic 1 Ns , Ns Ic 2 Ns , Ns Ic 3
+Set simulation speed: 0 = pause, 1 = slow, 2 = medium, 3 = fast.
+.It Ic Esc , F10
+Open the menu bar.
+.It Ic g
+Generate a new random city.
+.It Ic q
+Quit.
+.It Ic \`
+Take a screenshot to
+.Pa /tmp/ttycity_shot.txt .
+.It Ic Tab , ]
+Select the next tool.
+.It Ic [
+Select the previous tool.
+.El
+.Ss Mouse
+If ncurses mouse support is available:
+.Bl -tag -width "right-drag" -compact
+.It Ic left click
+Build with the current tool, select a tool on the palette, jump
+the minimap, or activate a menu item.
+.It Ic right drag
+Pan the map view.
+.It Ic wheel
+Scroll the cursor up or down.
+.It Ic right click (no drag)
+Dismiss popups.
+.El
+.Pp
+The terminal must support mouse reporting; most modern emulators do.
+.Ss Menu Bar
+The menu bar appears at the top of the screen.
+It contains the following menus:
+.Bl -tag -width Disasters -compact
+.It Ic File
+New City, Load Built-in, Load from Disk, Save City, Save As, Quit.
+.It Ic Options
+Auto Budget, Auto Bulldoze, Auto Goto, Disasters, Sound, Animation,
+Messages, Notices, Land Color, Graphics mode picker.
+.It Ic Disasters
+Monster, Fire, Flood, Tornado, Earthquake, Meltdown.
+.It Ic Speed
+Pause, Slow, Medium, Fast.
+.It Ic Views
+Budget, Evaluation, Graph, Map/Overlay.
+.El
+.Pp
+Navigate with arrow keys or hjkl; Enter selects; Esc closes.
+.Sh TOOLS
+Tools are selected with uppercase letters or by cycling with Tab.
+The tool palette is shown on the left side of the screen.
+.Pp
+The following tools are available:
+.Pp
+.Bl -tag -width "CoalPower" -compact -offset indent
+.It Ic R
+Residential zone
+.It Ic C
+Commercial zone
+.It Ic I
+Industrial zone
+.It Ic F
+Fire department
+.It Ic Q
+Query (inspect a zone)
+.It Ic P
+Police department
+.It Ic W
+Power line (wire)
+.It Ic B
+Bulldozer
+.It Ic K
+Park / trees
+.It Ic L
+Rail
+.It Ic O
+Road
+.It Ic S
+Stadium
+.It Ic E
+Seaport
+.It Ic G
+Coal power plant
+.It Ic N
+Nuclear power plant
+.It Ic A
+Airport
+.El
+.Pp
+Each tool has a build cost; insufficient funds are reported in the status line.
+Zones must be placed on cleared (bulldozed) land.
+.Sh SCREEN LAYOUT
+The screen is divided into:
+.Bl -tag -width "minimap" -compact
+.It Em toolbar
+Left column: tool palette with colored buttons.
+.It Em editor
+Center: the main map viewport (scrollable).
+.It Em minimap
+Right panel (toggle with
+.Ic m ) :
+overview map with optional overlays (pollution, crime, density, land value,
+power).
+On narrow terminals the minimap overlays the editor instead.
+.It Em status bar
+Bottom line: transient messages, scrolling advisories, or a quick-reference
+help line.
+.It Em left panel
+Between the toolbar and the editor: city name, date, funds, population,
+score, and RCI demand bars.
+.El
+.Sh BUILT-IN CITIES
+Several example cities are bundled into the binary.
+Load them from
+.Ic File > Load Built-in
+or by passing their name on the command line.
+Available cities include:
+bruce, about, badnews, bluebird, deadwood, finnigan, freds,
+happisle, haight, joffburg, kobe, kowloon, kyoto, kamakura,
+linecity, med_isle, neatmap, ndulls, radial, senri, southpac,
+splats, wetcity, yokohama.
+.Sh SCENARIOS
+The following scenarios are available from
+.Ic File > New Game :
+.Pp
+.Bl -tag -width "Rio de Janeiro" -compact
+.It Dullsville
+A small, lifeless town (1900).
+.It San Francisco
+Earthquake (1906).
+.It Hamburg
+Fire bombing (1944).
+.It Bern
+Chemical spill (1965).
+.It Tokyo
+Monster attack (1957).
+.It Detroit
+Crime wave (1972).
+.It Boston
+Nuclear meltdown (2010).
+.It Rio de Janeiro
+Tornado (2047).
+.El
+.Sh ENVIRONMENT
+.Bl -tag -width SIMHOME -compact
+.It Ev SIMHOME
+Override the default home directory for the city browser's starting folder.
+If unset, the binary probes several locations for a
+.Pa cities/
+subdirectory.
+.It Ev TERM
+Used for auto-detection of graphics mode and color capabilities.
+.It Ev LC_ALL , Ev LC_CTYPE , Ev LANG
+Checked for UTF-8 locale to auto-select the unicode graphics mode.
+.It Ev COLORTERM
+If set to
+.Ev truecolor
+or
+.Ev 24bit ,
+unicode mode is auto-selected (if a UTF-8 locale is also available).
+.El
+.Sh FILES
+.Bl -tag -width /usr/local/share/ttycity/cities -compact
+.It Pa /usr/local/share/ttycity/cities
+Default installed location for the built-in city files.
+.It Pa /tmp/ttycity_shot.txt
+Screenshot output from the
+.Ic \`
+key.
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+Start with a new random city:
+.Pp
+.Dl $ ttycity
+.Pp
+Load a saved city file:
+.Pp
+.Dl $ ttycity mycity.cty
+.Pp
+Start with emoji graphics and a grass theme:
+.Pp
+.Dl $ ttycity -gfx unicode -theme grass
+.Pp
+Force the 7-bit monochrome mode for a VT100:
+.Pp
+.Dl $ ttycity -gfx ascii
+.Pp
+Take a headless screenshot after 120 frames:
+.Pp
+.Dl $ ttycity -shot /tmp/city.txt -frames 120
+.Pp
+Generate a city from a fixed seed:
+.Pp
+.Dl $ ttycity 42
+.Sh SEE ALSO
+.Xr ncurses 3
+.Sh HISTORY
+.Nm
+is a port of
+.Micropolis Activity ,
+which was originally released by Maxis, later released for Unix in 1990,
+and finally open-sourced by Electronic Arts Inc. for the One Laptop Per
+Child program.
+The simulation engine was written by Will Wright.
+The ncurses front end preserves the original game logic and adds a
+terminal-native interface.
+.Sh LICENSE
+GPL version 3 or later.
+.Pp
+Copyright \(co 1989\(en2007 Electronic Arts Inc.
+.Pp
+The
+.Sy SimCity
+trademark is property of Electronic Arts Inc.
+This software is not affiliated with or endorsed by Electronic Arts.
+.Sh BUGS
+The stadium game-day animation and monster/tornado sprites are simplified
+compared to the X11 version.
+Sound is not yet implemented in the terminal port.
